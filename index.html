@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-900 font-sans">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Boutik'Game - Caisse Visuelle Gamifiée</title>
+  <!-- Icône SVG intégrée (Style Africain) -->
+  <link id="app-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3CclipPath id='r'%3E%3Crect width='512' height='512' rx='115'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23r)'%3E%3Crect width='512' height='512' fill='%23102542'/%3E%3Cg fill='none' stroke='%23d97706' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M0 95 L95 0 M0 120 L120 0 M15 95 L45 95 L45 65 M65 45 L95 45 L95 15'/%3E%3Cpath d='M512 95 L417 0 M512 120 L392 0 M497 95 L467 95 L467 65 M447 45 L417 45 L417 15'/%3E%3Cpath d='M0 417 L95 512 M0 392 L120 512 M15 417 L45 417 L45 447 M65 467 L95 467 L95 497'/%3E%3Cpath d='M512 417 L417 512 M512 392 L392 512 M497 417 L467 417 L467 447 M447 467 L417 467 L417 497'/%3E%3C/g%3E%3Cg stroke='%231e1b18' stroke-width='10' stroke-linejoin='round'%3E%3Crect x='255' y='185' width='18' height='45' fill='%23d97706'/%3E%3Crect x='225' y='138' width='78' height='50' rx='10' fill='%23fbbf24'/%3E%3Crect x='237' y='148' width='54' height='30' rx='5' fill='%2310b981'/%3E%3Cpath d='M105 320 L315 320 L315 375 C315 385 307 392 297 392 L123 392 C113 392 105 385 105 375 Z' fill='%23ea580c'/%3E%3Crect x='122' y='336' width='176' height='40' rx='6' fill='%2310b981'/%3E%3Ccircle cx='210' cy='356' r='8' fill='%23fbbf24'/%3E%3Cpath d='M132 225 L292 225 L315 320 L105 320 Z' fill='%23fbbf24'/%3E%3Cpath d='M145 242 L222 242 L230 302 L135 302 Z' fill='%23fef3c7'/%3E%3Cpath d='M165 242 L158 302 M195 242 L192 302 M141 262 L225 262 M138 282 L228 282' stroke-width='6'/%3E%3Crect x='242' y='242' width='38' height='22' rx='4' fill='%2310b981' stroke-width='7'/%3E%3Crect x='244' y='274' width='38' height='28' rx='4' fill='%23ea580c' stroke-width='7'/%3E%3Cpath d='M165 225 L165 182 C165 174 172 168 180 168 L205 168 C213 168 220 174 220 182 L220 225 Z' fill='%23fffbeb'/%3E%3Cpath d='M180 188 L205 188 M180 204 L205 204' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M280 295 C280 355 305 390 365 390 C425 390 450 355 450 295 Z' fill='%23d97706'/%3E%3Cpath d='M300 295 C300 225 430 225 430 295' fill='none' stroke='%2392400e' stroke-width='14'/%3E%3Crect x='312' y='262' width='34' height='36' rx='6' fill='%2310b981'/%3E%3Crect x='352' y='252' width='36' height='46' rx='8' fill='%23f97316'/%3E%3Crect x='392' y='268' width='28' height='30' rx='5' fill='%23ef4444'/%3E%3Cpath d='M282 325 L448 325 M292 355 L438 355 M335 295 L335 385 M395 295 L395 385' stroke-width='7'/%3E%3Cellipse cx='195' cy='115' rx='22' ry='28' transform='rotate(-25 195 115)' fill='%23fbbf24'/%3E%3Cellipse cx='115' cy='180' rx='20' ry='26' transform='rotate(-45 115 180)' fill='%23fbbf24'/%3E%3Cellipse cx='355' cy='115' rx='22' ry='28' transform='rotate(25 355 115)' fill='%23fbbf24'/%3E%3Cellipse cx='405' cy='185' rx='20' ry='26' transform='rotate(45 405 185)' fill='%23fbbf24'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E">
+  <link id="apple-touch-icon" rel="apple-touch-icon" href="">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Bungee, Cairo (for Arabic), Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Cairo:wght@600;800;900&family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            game: ['Bungee', 'Cairo', 'cursive'],
+            sans: ['Plus Jakarta Sans', 'Cairo', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              yellow: '#FFD100',
+              orange: '#FF6B00',
+              green: '#10B981',
+              darkgreen: '#059669',
+              purple: '#8B5CF6',
+              blue: '#3B82F6',
+              red: '#EF4444',
+            }
+          },
+          animation: {
+            'bounce-short': 'bounceShort 0.25s ease-in-out',
+            'pop-in': 'popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+          },
+          keyframes: {
+            bounceShort: {
+              '0%, 100%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(0.93)' },
+            },
+            popIn: {
+              '0%': { opacity: '0', transform: 'scale(0.8) translateY(10px)' },
+              '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .app-container {
+      height: 100vh;
+      height: 100dvh; /* Optimal support for Android mobile browsers */
+    }
+
+    .btn-game-green {
+      background-color: #10B981;
+      box-shadow: 0 4px 0 #047857;
+    }
+    .btn-game-green:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #047857;
+    }
+
+    .btn-game-orange {
+      background-color: #F97316;
+      box-shadow: 0 4px 0 #C2410C;
+    }
+    .btn-game-orange:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #C2410C;
+    }
+
+    .card-game {
+      box-shadow: 0 3px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 0 rgba(0, 0, 0, 0.4);
+      transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-game:active {
+      transform: translateY(2px) scale(0.96);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Support RTL layout for Arabic & Hassaniya */
+    [dir="rtl"] .rtl-flip {
+      transform: scaleX(-1);
+    }
+  </style>
+</head>
+
+<body class="h-full text-slate-100 flex justify-center items-center overflow-hidden selection:bg-brand-yellow selection:text-black select-none">
+
+  <!-- Canvas elements for FX -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Container Mobile Mockup Wrapper (Compact Android Optimized) -->
+  <div class="app-container w-full max-w-md md:h-[95vh] bg-slate-900 md:rounded-3xl md:border-4 md:border-slate-700 shadow-2xl flex flex-col relative overflow-hidden">
+    
+    <!-- TOP HEADER COMPACT -->
+    <header class="bg-slate-800 border-b border-slate-700 px-2.5 py-1.5 flex flex-col gap-1.5 z-10 shrink-0">
+      <div class="flex items-center justify-between">
+        <!-- Logo / Title -->
+        <div class="flex items-center gap-1.5">
+          <div class="w-8 h-8 rounded-xl overflow-hidden shadow-md border border-brand-yellow/60 shrink-0 bg-[#102542]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-full h-full">
+              <rect width="512" height="512" fill="#102542"/>
+              <g fill="none" stroke="#d97706" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M0 105 L105 0 M512 105 L407 0 M0 407 L105 512 M512 407 L407 512"/>
+              </g>
+              <g stroke="#1e1b18" stroke-width="12" stroke-linejoin="round">
+                <rect x="255" y="185" width="18" height="45" fill="#d97706"/>
+                <rect x="225" y="138" width="78" height="50" rx="10" fill="#fbbf24"/>
+                <rect x="237" y="148" width="54" height="30" rx="5" fill="#10b981"/>
+                <path d="M105 320 L315 320 L315 375 C315 385 307 392 297 392 L123 392 C113 392 105 385 105 375 Z" fill="#ea580c"/>
+                <rect x="122" y="336" width="176" height="40" rx="6" fill="#10b981"/>
+                <path d="M132 225 L292 225 L315 320 L105 320 Z" fill="#fbbf24"/>
+                <path d="M280 295 C280 355 305 390 365 390 C425 390 450 355 450 295 Z" fill="#d97706"/>
+                <path d="M300 295 C300 225 430 225 430 295" fill="none" stroke="#92400e" stroke-width="16"/>
+                <rect x="312" y="262" width="34" height="36" rx="6" fill="#10b981"/>
+                <rect x="352" y="252" width="36" height="46" rx="8" fill="#f97316"/>
+                <ellipse cx="195" cy="115" rx="22" ry="28" transform="rotate(-25 195 115)" fill="#fbbf24"/>
+                <ellipse cx="355" cy="115" rx="22" ry="28" transform="rotate(25 355 115)" fill="#fbbf24"/>
+              </g>
+            </svg>
+          </div>
+          <div>
+            <h1 class="font-game text-brand-yellow text-xs tracking-wider uppercase leading-none">Boutik'Game</h1>
+            <div class="flex items-center gap-1 mt-0.5">
+              <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider" id="header-cycle-tag">Cycle: 7 J</p>
+              <span id="cloud-status" class="text-[8px] px-1 rounded bg-slate-700 text-slate-400 font-bold" title="Synchronisation Cloud">☁️ Local</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls: Edit Mode, Lang, Sound, History, Credits -->
+        <div class="flex items-center gap-1">
+          <button id="btn-edit-mode" onclick="toggleEditMode()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 active:scale-95 flex items-center justify-center text-xs border border-slate-600 transition" title="Gérer / Supprimer des articles">
+            🗑️
+          </button>
+
+          <button onclick="openModal('modal-language')" class="px-2 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 active:scale-95 flex items-center justify-center text-[10px] font-black text-brand-yellow border border-slate-600 transition" title="Changer de langue">
+            🌐 <span id="current-lang-badge" class="ml-0.5 uppercase">FR</span>
+          </button>
+
+          <button id="btn-sound-toggle" onclick="toggleSound()" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 active:scale-95 flex items-center justify-center text-sm border border-slate-600 transition" title="Son">
+            🔊
+          </button>
+          
+          <button onclick="openModal('modal-history')" class="px-2 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 active:scale-95 text-[11px] font-bold flex items-center gap-1 border border-slate-600 transition" title="Historique">
+            📅 <span id="history-badge" class="bg-brand-blue text-white px-1 rounded-full text-[9px]">0</span>
+          </button>
+
+          <button onclick="openModal('modal-credits')" class="px-2 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 active:scale-95 text-[11px] font-bold flex items-center gap-1 border border-slate-600 transition text-brand-yellow" title="Carnet de dettes">
+            📖 <span id="credits-badge" class="bg-brand-orange text-white px-1 rounded-full text-[9px]">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Scoreboard + Cycle Mini Banner -->
+      <div class="grid grid-cols-2 gap-1.5">
+        <div class="bg-slate-900/90 rounded-xl px-2 py-1 border border-slate-700 flex flex-col justify-center">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] uppercase font-bold text-slate-400" data-i18n="ca_label">💰 C.A Cycle</span>
+            <span id="cycle-days-left" class="text-[9px] text-brand-blue font-game">J-7</span>
+          </div>
+          <span id="stat-ca" class="font-game text-sm text-brand-yellow leading-tight mt-0.5">
+            0 FCFA
+          </span>
+        </div>
+
+        <div class="bg-slate-900/90 rounded-xl px-2 py-1 border border-slate-700 flex flex-col justify-center">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] uppercase font-bold text-slate-400" data-i18n="profit_label">📈 Bénéfice</span>
+            <button onclick="openModal('modal-history')" class="text-[9px] text-brand-blue font-bold uppercase" data-i18n="bilan_btn">Bilan →</button>
+          </div>
+          <span id="stat-profit" class="font-game text-sm text-brand-green leading-tight mt-0.5">
+            +0 FCFA
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- CATEGORIES TAB BAR COMPACT -->
+    <nav class="bg-slate-800/90 px-2 py-1.5 border-b border-slate-700/60 overflow-x-auto no-scrollbar flex items-center gap-1.5 shrink-0">
+      <button onclick="filterCategory('all', this)" class="cat-btn active px-2.5 py-1 rounded-full bg-brand-yellow text-slate-900 text-[10px] font-black uppercase tracking-wider whitespace-nowrap shadow-sm border border-brand-yellow transition" data-i18n="cat_all">
+        ✨ Tout
+      </button>
+      <button onclick="filterCategory('hygiene', this)" class="cat-btn px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border border-slate-600 transition" data-i18n="cat_hygiene">
+        🪥 Soins
+      </button>
+      <button onclick="filterCategory('epicerie', this)" class="cat-btn px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border border-slate-600 transition" data-i18n="cat_epicerie">
+        🌾 Épicerie
+      </button>
+      <button onclick="filterCategory('boissons', this)" class="cat-btn px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border border-slate-600 transition" data-i18n="cat_boissons">
+        🥤 Boissons
+      </button>
+      <button onclick="filterCategory('frais', this)" class="cat-btn px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border border-slate-600 transition" data-i18n="cat_frais">
+        🥖 Frais
+      </button>
+    </nav>
+
+    <!-- MAIN PRODUCT GRID AREA (3 COLONNES COMPACTES POUR ANDROID) -->
+    <main class="flex-1 overflow-y-auto p-2 no-scrollbar pb-28">
+      <div id="product-grid" class="grid grid-cols-3 gap-1.5">
+        <!-- Products generated dynamically via JS -->
+      </div>
+    </main>
+
+    <!-- BOTTOM SHEET CART BAR COMPACT (FIXED AT BOTTOM) -->
+    <div id="cart-sheet" class="absolute bottom-0 left-0 right-0 bg-slate-800 border-t-2 border-slate-700 rounded-t-2xl shadow-2xl transition-all duration-300 ease-out z-30 flex flex-col" style="max-height: 82%;">
+      
+      <!-- Cart Header Bar Compact -->
+      <div onclick="toggleCartExpand()" class="px-3 py-2 bg-slate-800 rounded-t-2xl flex items-center justify-between cursor-pointer border-b border-slate-700/60">
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <span class="text-xl">🛍️</span>
+            <span id="cart-badge-count" class="absolute -top-1.5 -right-1.5 bg-brand-orange text-white font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-slate-800">
+              0
+            </span>
+          </div>
+          <div>
+            <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider leading-none" data-i18n="cart_title">Panier</div>
+            <div id="cart-total-display" class="font-game text-base text-brand-yellow leading-tight">
+              0 FCFA
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button id="btn-toggle-sheet" class="px-2.5 py-1 bg-slate-700 text-slate-200 text-[10px] font-bold rounded-lg border border-slate-600 flex items-center gap-1">
+            <span data-i18n="check_cart">Détails</span>
+            <span id="arrow-icon" class="transition-transform duration-200 text-[9px]">▲</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Expandable Cart Content -->
+      <div id="cart-expandable-content" class="hidden flex-1 flex-col overflow-hidden bg-slate-900/95">
+        <div id="cart-items-list" class="flex-1 overflow-y-auto p-2 space-y-1.5 max-h-52 no-scrollbar">
+          <!-- Cart items rendered here -->
+        </div>
+
+        <div class="px-2.5 py-1 flex justify-between items-center bg-slate-800/60 border-t border-slate-700/50">
+          <span class="text-[10px] text-slate-400" data-i18n="check_qty">Vérifiez les quantités</span>
+          <button onclick="clearCart()" class="text-[10px] text-red-400 hover:text-red-300 font-bold flex items-center gap-1 px-2 py-0.5 bg-red-950/40 rounded border border-red-900/50" data-i18n="clear_cart">
+            🗑️ Vider
+          </button>
+        </div>
+      </div>
+
+      <!-- CART ACTION BUTTONS COMPACT -->
+      <div class="p-2 bg-slate-800 border-t border-slate-700/80 grid grid-cols-2 gap-2">
+        <button onclick="handleValidation('sale')" class="btn-game-green py-2 px-1.5 rounded-xl text-white font-game text-[11px] tracking-wider flex flex-col items-center justify-center active:scale-95 transition">
+          <span class="leading-none" data-i18n="btn_cash">💰 ENCAISSER</span>
+          <span class="text-[8px] font-sans font-bold opacity-90 mt-0.5" data-i18n="btn_cash_sub">(Comptant / Cash)</span>
+        </button>
+
+        <button onclick="openCreditDrawer()" class="btn-game-orange py-2 px-1.5 rounded-xl text-white font-game text-[11px] tracking-wider flex flex-col items-center justify-center active:scale-95 transition">
+          <span class="leading-none" data-i18n="btn_credit">📝 À CRÉDIT</span>
+          <span class="text-[8px] font-sans font-bold opacity-90 mt-0.5" data-i18n="btn_credit_sub">(Carnet de dette)</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================= MODALS & DRAWERS ================= -->
+
+  <!-- MODAL 0 : CHOIX DE LA LANGUE (SELECTION INITIALE & EN-TÊTE) -->
+  <div id="modal-language" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md hidden z-50 flex items-center justify-center p-3">
+    <div class="bg-slate-800 border-2 border-brand-yellow rounded-3xl w-full max-w-xs p-4 shadow-2xl animate-pop-in text-center max-h-[92vh] overflow-y-auto no-scrollbar">
+      <div class="w-12 h-12 bg-gradient-to-tr from-brand-yellow to-brand-orange rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 shadow-lg transform -rotate-3">
+        🌐
+      </div>
+      
+      <h2 class="font-game text-brand-yellow text-lg tracking-wider" data-i18n="lang_modal_title">CHOIX DE LA LANGUE</h2>
+      <p class="text-[11px] text-slate-300 mt-1 mb-3 leading-tight" data-i18n="lang_modal_sub">
+        Choisissez votre langue de travail / Seleciona kan:
+      </p>
+
+      <div class="space-y-2 text-left">
+        <button onclick="setLanguage('fr')" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition">
+          <span class="flex items-center gap-2"><span>🇫🇷</span> <span>Français</span></span>
+          <span class="text-brand-yellow text-[10px]">OK</span>
+        </button>
+
+        <button onclick="setLanguage('bm')" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition">
+          <span class="flex items-center gap-2"><span>🇲🇱</span> <span>Dioula / Bambara</span></span>
+          <span class="text-slate-400 text-[10px]">Bamanankan</span>
+        </button>
+
+        <button onclick="setLanguage('mos')" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition">
+          <span class="flex items-center gap-2"><span>🇧🇫</span> <span>Mooré</span></span>
+          <span class="text-slate-400 text-[10px]">Mooré</span>
+        </button>
+
+        <button onclick="setLanguage('wo')" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition">
+          <span class="flex items-center gap-2"><span>🇸🇳</span> <span>Wolof</span></span>
+          <span class="text-slate-400 text-[10px]">Wolof</span>
+        </button>
+
+        <button onclick="setLanguage('ff')" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition">
+          <span class="flex items-center gap-2"><span>🌍</span> <span>Pular / Peul</span></span>
+          <span class="text-slate-400 text-[10px]">Fulfulde</span>
+        </button>
+
+        <button onclick="setLanguage('ar')" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition">
+          <span class="flex items-center gap-2"><span>🇲🇷</span> <span>Arabe & Hassaniya</span></span>
+          <span class="text-brand-yellow font-game text-[11px]">العربية</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL INITIAL BLOQUANT : CHOIX DU CYCLE COMPTABLE -->
+  <div id="modal-cycle-setup" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md hidden z-50 flex items-center justify-center p-3">
+    <div class="bg-slate-800 border-2 border-brand-yellow rounded-3xl w-full max-w-xs p-4 shadow-2xl animate-pop-in text-center">
+      <div class="w-12 h-12 bg-gradient-to-tr from-brand-yellow to-brand-orange rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 shadow-lg transform -rotate-3">
+        📅
+      </div>
+      
+      <h2 class="font-game text-brand-yellow text-lg tracking-wider" data-i18n="welcome_title">BIENVENUE SUR BOUTIK'GAME</h2>
+      <p class="text-[11px] text-slate-300 mt-1 mb-3 leading-relaxed" data-i18n="welcome_sub">
+        À quelle fréquence souhaitez-vous faire vos comptes ? <br>
+        À la fin de chaque période, le compteur revient à zéro et vos bilans sont archivés.
+      </p>
+
+      <div class="space-y-2 mb-3">
+        <button onclick="selectCycleDuration(7)" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition group">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📆</span>
+            <span class="text-left rtl:text-right">
+              <span class="block text-white font-black" data-i18n="cycle_7d">Chaque Semaine</span>
+              <span class="block text-[9px] text-slate-400 font-normal" data-i18n="cycle_7d_sub">Remise à zéro tous les 7 jours</span>
+            </span>
+          </div>
+          <span class="text-brand-yellow font-game text-[10px]" data-i18n="cycle_choose">Choisir →</span>
+        </button>
+
+        <button onclick="selectCycleDuration(14)" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition group">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📅</span>
+            <span class="text-left rtl:text-right">
+              <span class="block text-white font-black" data-i18n="cycle_14d">Toutes les 2 Semaines</span>
+              <span class="block text-[9px] text-slate-400 font-normal" data-i18n="cycle_14d_sub">Remise à zéro tous les 14 jours</span>
+            </span>
+          </div>
+          <span class="text-brand-yellow font-game text-[10px]" data-i18n="cycle_choose">Choisir →</span>
+        </button>
+
+        <button onclick="selectCycleDuration(30)" class="w-full py-2.5 px-3 rounded-2xl bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 hover:border-brand-yellow text-white font-bold text-xs flex items-center justify-between transition group">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🗓️</span>
+            <span class="text-left rtl:text-right">
+              <span class="block text-white font-black" data-i18n="cycle_30d">Chaque Mois</span>
+              <span class="block text-[9px] text-slate-400 font-normal" data-i18n="cycle_30d_sub">Remise à zéro tous les 30 jours</span>
+            </span>
+          </div>
+          <span class="text-brand-yellow font-game text-[10px]" data-i18n="cycle_choose">Choisir →</span>
+        </button>
+      </div>
+
+      <p class="text-[9px] text-slate-400 italic" data-i18n="cycle_footer">Vous pourrez modifier ce choix à tout moment dans les réglages.</p>
+    </div>
+  </div>
+
+  <!-- MODAL: BILAN ET HISTORIQUE JOUR PAR JOUR -->
+  <div id="modal-history" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-3">
+    <div class="bg-slate-800 border-2 border-slate-700 rounded-3xl w-full max-w-xs p-4 shadow-2xl animate-pop-in flex flex-col max-h-[85vh]">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="font-game text-brand-blue text-base" data-i18n="history_title">📊 Bilan & Historique</h3>
+        <button onclick="closeModal('modal-history')" class="text-slate-400 text-lg font-bold p-1">✕</button>
+      </div>
+
+      <!-- Navigation Tabs: Historique Journalier vs Réglages Cycle -->
+      <div class="flex border-b border-slate-700 mb-2.5 text-xs">
+        <button id="tab-btn-daily" onclick="switchHistoryTab('daily')" class="flex-1 py-1.5 font-bold text-brand-yellow border-b-2 border-brand-yellow" data-i18n="tab_daily">
+          📅 Jour par Jour
+        </button>
+        <button id="tab-btn-cycle" onclick="switchHistoryTab('cycle')" class="flex-1 py-1.5 font-bold text-slate-400" data-i18n="tab_cycle">
+          ⚙️ Cycle & Archives
+        </button>
+      </div>
+
+      <!-- TAB 1: HISTORIQUE JOUR PAR JOUR -->
+      <div id="tab-content-daily" class="flex-1 flex flex-col overflow-hidden space-y-2">
+        <!-- Date Selector Slider Bar -->
+        <div class="bg-slate-900 p-1.5 rounded-xl border border-slate-700 flex items-center justify-between">
+          <button onclick="shiftSelectedDate(-1)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center border border-slate-700 text-xs rtl-flip">◀</button>
+          <div class="text-center">
+            <span id="selected-date-label" class="text-xs font-black text-brand-yellow uppercase tracking-wider block">Aujourd'hui</span>
+            <span id="selected-date-sub" class="text-[9px] text-slate-400 block">--/--/----</span>
+          </div>
+          <button onclick="shiftSelectedDate(1)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold flex items-center justify-center border border-slate-700 text-xs rtl-flip">▶</button>
+        </div>
+
+        <!-- Selected Day Summary Card -->
+        <div class="grid grid-cols-2 gap-1.5">
+          <div class="bg-slate-900/90 p-1.5 rounded-xl border border-slate-700 text-center">
+            <span class="text-[8px] uppercase font-bold text-slate-400 block" data-i18n="daily_sales">Ventes du jour</span>
+            <span id="day-stat-ca" class="font-game text-xs text-brand-yellow mt-0.5 block">0 FCFA</span>
+          </div>
+          <div class="bg-slate-900/90 p-1.5 rounded-xl border border-slate-700 text-center">
+            <span class="text-[8px] uppercase font-bold text-slate-400 block" data-i18n="daily_profit">Bénéfice du jour</span>
+            <span id="day-stat-profit" class="font-game text-xs text-brand-green mt-0.5 block">+0 FCFA</span>
+          </div>
+        </div>
+
+        <!-- Sales Tickets List of the Selected Day -->
+        <div id="history-day-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1 no-scrollbar">
+          <!-- Tickets injected dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- TAB 2: REGLAGES DU CYCLE & ARCHIVES -->
+      <div id="tab-content-cycle" class="hidden flex-1 flex-col overflow-y-auto space-y-2.5 no-scrollbar">
+        <!-- Active Cycle Config Info -->
+        <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-700 space-y-1.5">
+          <div class="text-[11px] font-bold text-slate-200" data-i18n="active_cycle_duration">Durée du cycle actif :</div>
+          <div class="flex gap-1">
+            <button onclick="changeCycleDuration(7)" id="cycle-opt-7" class="flex-1 py-1 rounded-lg border border-slate-700 text-[10px] font-bold text-slate-300" data-i18n="7_days">7 Jours</button>
+            <button onclick="changeCycleDuration(14)" id="cycle-opt-14" class="flex-1 py-1 rounded-lg border border-slate-700 text-[10px] font-bold text-slate-300" data-i18n="14_days">14 Jours</button>
+            <button onclick="changeCycleDuration(30)" id="cycle-opt-30" class="flex-1 py-1 rounded-lg border border-slate-700 text-[10px] font-bold text-slate-300" data-i18n="30_days">30 Jours</button>
+          </div>
+        </div>
+
+        <!-- Simulation / Force Reset Button -->
+        <div class="bg-slate-900/90 p-2.5 rounded-xl border border-brand-orange/40 space-y-1.5">
+          <div class="text-[11px] font-bold text-brand-orange" data-i18n="test_reset_title">🧪 Test & Remise à Zéro</div>
+          <p class="text-[9px] text-slate-400 leading-tight" data-i18n="test_reset_sub">
+            Souhaitez-vous clôturer le cycle en cours maintenant ? Les données actuelles seront archivées et la caisse reviendra à 0 FCFA.
+          </p>
+          <button onclick="forceResetCycle()" class="w-full btn-game-orange py-1.5 rounded-lg text-white font-game text-[10px] uppercase" data-i18n="btn_force_reset">
+            ⚡ Simuler fin de période (RàZ)
+          </button>
+        </div>
+
+        <!-- Archived Past Cycles -->
+        <div class="space-y-1.5">
+          <div class="text-[10px] font-bold text-slate-300 uppercase tracking-wider" data-i18n="archived_cycles">📦 Cycles Archivés</div>
+          <div id="archived-cycles-list" class="space-y-1.5">
+            <!-- Past archived cycles injected here -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: AJOUTER UN PRODUIT PAR PHOTO -->
+  <div id="modal-add-product" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-3">
+    <div class="bg-slate-800 border-2 border-slate-700 rounded-3xl w-full max-w-xs p-4 shadow-2xl animate-pop-in max-h-[90vh] overflow-y-auto no-scrollbar">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="font-game text-brand-yellow text-base" data-i18n="add_prod_title">📷 Prendre Photo Produit</h3>
+        <button onclick="closeModal('modal-add-product')" class="text-slate-400 text-lg font-bold p-1">✕</button>
+      </div>
+
+      <form id="form-add-product" onsubmit="saveNewProduct(event)" class="space-y-2.5">
+        <!-- Camera Photo Capture Area -->
+        <div>
+          <label class="block text-[10px] font-bold text-slate-300 mb-1" data-i18n="photo_label">Photo de l'article (Caméra / Fichier)</label>
+          <div class="relative bg-slate-900 border-2 border-dashed border-slate-600 rounded-2xl overflow-hidden text-center flex flex-col items-center justify-center hover:border-brand-yellow transition cursor-pointer min-h-[130px]" onclick="document.getElementById('photo-file-input').click()">
+            <div id="photo-preview-container" class="hidden w-full h-36 relative bg-slate-950">
+              <img id="photo-preview-img" src="" alt="Aperçu" class="w-full h-full object-cover">
+              <span class="absolute bottom-1 right-1 bg-slate-900/90 text-white text-[9px] px-1.5 py-0.5 rounded font-bold border border-slate-700" data-i18n="change_photo">Changer photo</span>
+            </div>
+            
+            <div id="photo-placeholder-ui" class="flex flex-col items-center p-3">
+              <div class="w-10 h-10 rounded-full bg-brand-yellow/10 text-brand-yellow flex items-center justify-center text-xl mb-1 border border-brand-yellow/30">
+                📸
+              </div>
+              <span class="text-[11px] font-bold text-slate-200" data-i18n="take_prod_photo">Prendre photo du produit</span>
+              <span class="text-[9px] text-slate-400 mt-0.5" data-i18n="photo_auto_fill">La photo remplira automatiquement la tuile</span>
+            </div>
+
+            <input type="file" id="photo-file-input" accept="image/*" capture="environment" class="hidden" onchange="previewCapturedPhoto(event)">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-slate-300 mb-1" data-i18n="prod_name">Nom du Produit</label>
+          <input type="text" id="new-prod-name" required placeholder="Ex: Dentifrice Colgate 75ml" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-yellow">
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-bold text-slate-300 mb-1" data-i18n="prod_cat">Catégorie</label>
+          <select id="new-prod-cat" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-yellow">
+            <option value="hygiene">🪥 Dentifrices & Soins</option>
+            <option value="epicerie">🌾 Épicerie & Huile</option>
+            <option value="boissons">🥤 Boissons & Eau</option>
+            <option value="frais">🥖 Frais & Snacks</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-300 mb-1" data-i18n="cost_price">Prix Achat (F)</label>
+            <input type="number" id="new-prod-cost" required min="0" placeholder="350" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-yellow">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-300 mb-1" data-i18n="sell_price">Prix Vente (F)</label>
+            <input type="number" id="new-prod-price" required min="0" placeholder="500" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-yellow">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full mt-1 btn-game-green py-2 rounded-xl text-white font-game text-xs uppercase" data-i18n="create_tile">
+          Créer la vignette
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: SELECTION CLIENT POUR CREDIT -->
+  <div id="modal-credit-client" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-3">
+    <div class="bg-slate-800 border-2 border-slate-700 rounded-3xl w-full max-w-xs p-4 shadow-2xl animate-pop-in">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="font-game text-brand-orange text-base" data-i18n="credit_title">📙 Carnet de Crédit</h3>
+        <button onclick="closeModal('modal-credit-client')" class="text-slate-400 text-lg font-bold p-1">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-300 mb-2.5 leading-tight" data-i18n="credit_sub">À qui confiez-vous cette marchandise à crédit ?</p>
+
+      <div class="mb-2.5">
+        <span class="text-[9px] font-bold uppercase text-slate-400 block mb-1" data-i18n="frequent_clients">Clients fréquents</span>
+        <div class="flex flex-wrap gap-1">
+          <button type="button" onclick="selectClientName('Maman Fatou')" class="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-bold border border-slate-600 text-slate-200">
+            👩 Maman Fatou
+          </button>
+          <button type="button" onclick="selectClientName('Moussa')" class="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-bold border border-slate-600 text-slate-200">
+            👦 Moussa
+          </button>
+          <button type="button" onclick="selectClientName('Tantie Awa')" class="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-bold border border-slate-600 text-slate-200">
+            👩‍🦱 Tantie Awa
+          </button>
+          <button type="button" onclick="selectClientName('Vieux Kofi')" class="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-bold border border-slate-600 text-slate-200">
+            👨 Vieux Kofi
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-2.5">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-300 mb-1" data-i18n="client_name_label">Nom du client</label>
+          <input type="text" id="credit-client-name" placeholder="Nom du client..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-brand-orange">
+        </div>
+
+        <button onclick="confirmCreditSale()" class="w-full btn-game-orange py-2 rounded-xl text-white font-game text-xs uppercase" data-i18n="confirm_credit">
+          Confirmer le Crédit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CARNET DES CRÉDITS EN COURS -->
+  <div id="modal-credits" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-3">
+    <div class="bg-slate-800 border-2 border-slate-700 rounded-3xl w-full max-w-xs p-4 shadow-2xl animate-pop-in flex flex-col max-h-[80vh]">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="font-game text-brand-orange text-base" data-i18n="credits_modal_title">📖 Dettes Clients</h3>
+        <button onclick="closeModal('modal-credits')" class="text-slate-400 text-lg font-bold p-1">✕</button>
+      </div>
+
+      <div id="credits-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1 no-scrollbar">
+        <!-- Dynamic list of credits -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMATION SUPPRESSION ARTICLE -->
+  <div id="modal-confirm-delete" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-3">
+    <div class="bg-slate-800 border-2 border-red-500 rounded-3xl w-full max-w-xs p-4 shadow-2xl animate-pop-in text-center">
+      <div class="w-12 h-12 bg-red-500/20 text-red-500 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 border border-red-500/40">
+        🗑️
+      </div>
+      <h3 class="font-game text-white text-base mb-1" data-i18n="delete_confirm_title">Supprimer cet article ?</h3>
+      <p id="delete-prod-name" class="text-xs font-bold text-brand-yellow mb-3"></p>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="closeModal('modal-confirm-delete')" class="py-2 rounded-xl bg-slate-700 text-slate-200 font-bold text-xs border border-slate-600" data-i18n="cancel">
+          Annuler
+        </button>
+        <button onclick="confirmDeleteProduct()" class="py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-game text-xs shadow-lg" data-i18n="confirm_delete_btn">
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-1.5 w-full max-w-xs"></div>
+
+  <!-- ================= CLOUD STORAGE & JAVASCRIPT LOGIC ================= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'boutik-game-default';
+
+    // Initialisation sécurisée de la base de données Cloud
+    async function initCloudSync() {
+      try {
+        if (typeof __firebase_config === 'undefined') return;
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            currentUser = user;
+            const statusEl = document.getElementById('cloud-status');
+            if (statusEl) {
+              statusEl.innerText = '☁️ Sync';
+              statusEl.className = 'text-[8px] px-1 rounded bg-emerald-950 text-brand-green font-bold border border-emerald-700/50';
+            }
+            listenToCloudData(user.uid);
+          }
+        });
+      } catch (err) {
+        console.warn("Mode hors-ligne actif :", err);
+      }
+    }
+
+    function listenToCloudData(uid) {
+      if (!db || !uid) return;
+      const stateDocRef = doc(db, 'artifacts', appId, 'users', uid, 'boutikData', 'mainState');
+      onSnapshot(stateDocRef, (snapshot) => {
+        if (snapshot.exists() && window.applyCloudSnapshot) {
+          window.applyCloudSnapshot(snapshot.data());
+        } else if (!snapshot.exists() && window.pushStateToCloud) {
+          // Première connexion : envoyer les données actuelles vers le cloud
+          window.pushStateToCloud();
+        }
+      }, (error) => {
+        console.warn("Erreur lecture cloud :", error);
+      });
+    }
+
+    window.saveToCloudDatabase = async function(payload) {
+      if (!db || !currentUser) return;
+      try {
+        const stateDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'boutikData', 'mainState');
+        await setDoc(stateDocRef, {
+          ...payload,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (e) {
+        console.warn("Erreur sauvegarde cloud :", e);
+      }
+    };
+
+    initCloudSync();
+  </script>
+
+  <script>
+    // --- MULTI-LANGUAGE TRANSLATION DICTIONARY ---
+    const i18n = {
+      fr: {
+        lang_name: "Français",
+        lang_modal_title: "CHOIX DE LA LANGUE",
+        lang_modal_sub: "Choisissez votre langue de travail :",
+        ca_label: "💰 C.A Cycle",
+        profit_label: "📈 Bénéfice",
+        bilan_btn: "Bilan →",
+        cat_all: "✨ Tout",
+        cat_hygiene: "🪥 Soins",
+        cat_epicerie: "🌾 Épicerie",
+        cat_boissons: "🥤 Boissons",
+        cat_frais: "🥖 Frais",
+        cart_title: "Panier",
+        check_cart: "Détails",
+        check_qty: "Vérifiez les quantités",
+        clear_cart: "🗑️ Vider",
+        btn_cash: "💰 ENCAISSER",
+        btn_cash_sub: "(Comptant / Cash)",
+        btn_credit: "📝 À CRÉDIT",
+        btn_credit_sub: "(Carnet de dette)",
+        welcome_title: "BIENVENUE SUR BOUTIK'GAME",
+        welcome_sub: "À quelle fréquence souhaitez-vous faire vos comptes ? À la fin de chaque période, le compteur revient à zéro et vos bilans sont archivés.",
+        cycle_7d: "Chaque Semaine",
+        cycle_7d_sub: "Remise à zéro tous les 7 jours",
+        cycle_14d: "Toutes les 2 Semaines",
+        cycle_14d_sub: "Remise à zéro tous les 14 jours",
+        cycle_30d: "Chaque Mois",
+        cycle_30d_sub: "Remise à zéro tous les 30 jours",
+        cycle_choose: "Choisir →",
+        cycle_footer: "Vous pourrez modifier ce choix à tout moment dans les réglages.",
+        history_title: "📊 Bilan & Historique",
+        tab_daily: "📅 Jour par Jour",
+        tab_cycle: "⚙️ Cycle & Archives",
+        today: "Aujourd'hui",
+        yesterday: "Hier",
+        daily_sales: "Ventes du jour",
+        daily_profit: "Bénéfice du jour",
+        no_sales_day: "Aucune vente enregistrée pour ce jour.",
+        cancel: "Annuler",
+        prod_count_suffix: "prod.",
+        active_cycle_duration: "Durée du cycle actif :",
+        "7_days": "7 Jours",
+        "14_days": "14 Jours",
+        "30_days": "30 Jours",
+        test_reset_title: "🧪 Test & Remise à Zéro",
+        test_reset_sub: "Souhaitez-vous clôturer le cycle en cours maintenant ? Les données actuelles seront archivées et la caisse reviendra à 0 FCFA.",
+        btn_force_reset: "⚡ Simuler fin de période (RàZ)",
+        archived_cycles: "📦 Cycles Archivés",
+        no_archives: "Aucune archive passée pour l'instant.",
+        add_prod_title: "📷 Prendre Photo Produit",
+        photo_label: "Photo de l'article (Caméra / Fichier)",
+        change_photo: "Changer photo",
+        take_prod_photo: "Prendre photo du produit",
+        photo_auto_fill: "La photo remplira automatiquement la tuile",
+        prod_name: "Nom du Produit",
+        cost_price: "Prix Achat (F)",
+        sell_price: "Prix Vente (F)",
+        create_tile: "Créer la vignette",
+        credit_title: "📙 Carnet de Crédit",
+        credit_sub: "À qui confiez-vous cette marchandise à crédit ?",
+        frequent_clients: "Clients fréquents",
+        client_name_label: "Nom du client",
+        confirm_credit: "Confirmer le Crédit",
+        credits_modal_title: "📖 Dettes Clients",
+        no_credits: "Aucune dette en cours 👍",
+        paid_btn: "✓ Payé",
+        take_photo_tile: "Prendre Photo",
+        add_new_sub: "+ Nouveauté",
+        cycle_tag_prefix: "Cycle:",
+        days_short: "J",
+        delete_confirm_title: "Supprimer cet article ?",
+        confirm_delete_btn: "Supprimer",
+        edit_mode_on: "Mode suppression activé : touchez un article 🗑️",
+        edit_mode_off: "Mode vente normal",
+        item_deleted: "Article supprimé"
+      },
+      bm: { // Dioula / Bambara
+        lang_name: "Dioula / Bambara",
+        lang_modal_title: "KAN SUGANDI",
+        lang_modal_sub: "I bɛ baara kɛ kan min na, o sugandi:",
+        ca_label: "💰 Wari Caman",
+        profit_label: "📈 Tɔnɔ (Nafolo)",
+        bilan_btn: "Jate →",
+        cat_all: "✨ Bɛɛ",
+        cat_hygiene: "🪥 Yɛlɛko",
+        cat_epicerie: "🌾 Domuni",
+        cat_boissons: "🥤 Minfɛn",
+        cat_frais: "🥖 Sisɛn-fɛn",
+        cart_title: "Sarki",
+        check_cart: "Filɛ",
+        check_qty: "Hakɛ lɔn",
+        clear_cart: "🗑️ Lala",
+        btn_cash: "💰 WARI MINƐ",
+        btn_cash_sub: "(Sisan Sisan)",
+        btn_credit: "📝 JURU LA",
+        btn_credit_sub: "(Juru Gafe)",
+        welcome_title: "BISI BOUTIK'GAME LA",
+        welcome_sub: "I bɛ a fɛ ka i ka jate kɛ tuma jumɛn? Tuma min na waati banna, wari bɛ segen ka bɛn 0 ma ka mara.",
+        cycle_7d: "Dɔgɔkun Bɛɛ",
+        cycle_7d_sub: "A bɛ lase 0 ma tile 7 bɛɛ",
+        cycle_14d: "Dɔgɔkun 2 Bɛɛ",
+        cycle_14d_sub: "A bɛ lase 0 ma tile 14 bɛɛ",
+        cycle_30d: "Kalo Bɛɛ",
+        cycle_30d_sub: "A bɛ lase 0 ma tile 30 bɛɛ",
+        cycle_choose: "Sugandi →",
+        cycle_footer: "I bɛ se ka nin yɛlɛma tuma bɛɛ labɛnko la.",
+        history_title: "📊 Jate & Tariku",
+        tab_daily: "📅 Tile o Tile",
+        tab_cycle: "⚙️ Waati & Mara",
+        today: "Bi",
+        yesterday: "Kunu",
+        daily_sales: "Bi feere",
+        daily_profit: "Bi tɔnɔ",
+        no_sales_day: "Feere si m'a sɔrɔ bi.",
+        cancel: "Bɔ a la",
+        prod_count_suffix: "fɛn.",
+        active_cycle_duration: "Waati min bɛ sen na:",
+        "7_days": "Tile 7",
+        "14_days": "Tile 14",
+        "30_days": "Tile 30",
+        test_reset_title: "🧪 Kɔrɔbɔli & Laban",
+        test_reset_sub: "I bɛ a fɛ ka waati laban sisan? Jate bɛɛ bɛ mara ka lase 0 FCFA ma.",
+        btn_force_reset: "⚡ Waati laban sisan",
+        archived_cycles: "📦 Waati tɛmɛnenw",
+        no_archives: "Foyi t'a kɔnɔ fɔlɔ.",
+        add_prod_title: "📷 Fɛn Ja Ta",
+        photo_label: "Fɛn ja (Kamera / Gafe)",
+        change_photo: "Ja yɛlɛma",
+        take_prod_photo: "Ja ta sisan",
+        photo_auto_fill: "Ja bɛ kɛ fɛn ye",
+        prod_name: "Fɛn Tɔgɔ",
+        cost_price: "Sannikɛ Sɔngɔ (F)",
+        sell_price: "Feerekɛ Sɔngɔ (F)",
+        create_tile: "Fɛn Kura Dà",
+        credit_title: "📙 Juru Gafe",
+        credit_sub: "Juru bɛ di jon ma sisan?",
+        frequent_clients: "Mogow min bɛ na tuma bɛɛ",
+        client_name_label: "Mogo tɔgɔ",
+        confirm_credit: "Juru Sɛbɛn",
+        credits_modal_title: "📖 Mogow ka Juru",
+        no_credits: "Juru si t'a la 👍",
+        paid_btn: "✓ A sara",
+        take_photo_tile: "Ja Ta",
+        add_new_sub: "+ Fɛn Kura",
+        cycle_tag_prefix: "Waati:",
+        days_short: "T",
+        delete_confirm_title: "Ka nin fɛn bɔ a la wa?",
+        confirm_delete_btn: "A Bɔ",
+        edit_mode_on: "Fɛn bɔli tuma: digi fɛn kan 🗑️",
+        edit_mode_off: "Feere kɛcogo",
+        item_deleted: "Fɛn bɔra a la"
+      },
+      mos: { // Mooré
+        lang_name: "Mooré",
+        lang_modal_title: "GOAMA YÃKRE",
+        lang_modal_sub: "Yãk-y y goam n na n tũ:",
+        ca_label: "💰 Ligdi Fâa",
+        profit_label: "📈 Tɔɔne",
+        bilan_btn: "Jat →",
+        cat_all: "✨ Fâa",
+        cat_hygiene: "🪥 Lafi kɔɔre",
+        cat_epicerie: "🌾 Rìib",
+        cat_boissons: "🥤 Yũumdo",
+        cat_frais: "🥖 Masaì",
+        cart_title: "Pani",
+        check_cart: "Gɛle",
+        check_qty: "Gese wùsgo",
+        clear_cart: "🗑️ Pãka",
+        btn_cash: "💰 LIGDI DEEGE",
+        btn_cash_sub: "(Masa Masa)",
+        btn_credit: "📝 SÀMDE",
+        btn_credit_sub: "(Sàm-gõore)",
+        welcome_title: "NE REEM BOUTIK'GAME",
+        welcome_sub: "Wãn to la y dat n maneg y jate? Wakato laasẽ, ligdi lebrgda 0 teedẽ.",
+        cycle_7d: "Daboog fâa",
+        cycle_7d_sub: "Lebri 0 rasem 7 fâa",
+        cycle_14d: "Dabiisa 14 fâa",
+        cycle_14d_sub: "Lebri 0 rasem 14 fâa",
+        cycle_30d: "Kiuugu fâa",
+        cycle_30d_sub: "Lebri 0 rasem 30 fâa",
+        cycle_choose: "Yãke →",
+        cycle_footer: "Y tõe n tekame wakato fâa.",
+        history_title: "📊 Jate & Kibay",
+        tab_daily: "📅 Daar fâa",
+        tab_cycle: "⚙️ Wakato & Rogse",
+        today: "Rũndã",
+        yesterday: "Zaame",
+        daily_sales: "Rũndã koose",
+        daily_profit: "Rũndã tɔɔne",
+        no_sales_day: "Koosga ka be rũndã ye.",
+        cancel: "Yĩmi",
+        prod_count_suffix: "teed.",
+        active_cycle_duration: "Masã wakato koozi:",
+        "7_days": "Rasem 7",
+        "14_days": "Rasem 14",
+        "30_days": "Rasem 30",
+        test_reset_title: "🧪 Makre & Lebgri",
+        test_reset_sub: "Y data n saab masã wakato? Ligdi n na n leb 0 FCFA.",
+        btn_force_reset: "⚡ Saabo (RàZ)",
+        archived_cycles: "📦 Rogse teedẽ",
+        no_archives: "Bɔɔy ka be ye.",
+        add_prod_title: "📷 Foto Deegre",
+        photo_label: "Teedo foto (Kamera)",
+        change_photo: "Tek foto",
+        take_prod_photo: "Yik foto masã",
+        photo_auto_fill: "Foto n na n lill zĩiga",
+        prod_name: "Teedo Yure",
+        cost_price: "Daabo Raaga (F)",
+        sell_price: "Koosgo Raaga (F)",
+        create_tile: "Maan Teedo",
+        credit_title: "📙 Sàm-gõore",
+        credit_sub: "Ãnda la y koog sàmde?",
+        frequent_clients: "Neba n wat wũsgo",
+        client_name_label: "Neda Yure",
+        confirm_credit: "Sègle Sàmde",
+        credits_modal_title: "📖 Neba Sàmde",
+        no_credits: "Sàmde ka be ye 👍",
+        paid_btn: "✓ Yaomda",
+        take_photo_tile: "Yik Foto",
+        add_new_sub: "+ Teed Paalga",
+        cycle_tag_prefix: "Wakato:",
+        days_short: "R",
+        delete_confirm_title: "Yɩɩs teedo kãnga?",
+        confirm_delete_btn: "Yɩɩse",
+        edit_mode_on: "Yɩɩsgo wakato: sɩɩg teedo 🗑️",
+        edit_mode_off: "Koosgo wakato",
+        item_deleted: "Teedo yɩɩsame"
+      },
+      wo: { // Wolof
+        lang_name: "Wolof",
+        lang_modal_title: "TÀNN LÀKK",
+        lang_modal_sub: "Tànnal làkk bi nga bëggafay liggéeye:",
+        ca_label: "💰 Xaalis Bép",
+        profit_label: "📈 Njariñ",
+        bilan_btn: "Komp-bi →",
+        cat_all: "✨ Yépp",
+        cat_hygiene: "🪥 Wer-gu-yaram",
+        cat_epicerie: "🌾 Ñam",
+        cat_boissons: "🥤 Naan",
+        cat_frais: "🥖 Luy yees",
+        cart_title: "Sakeu",
+        check_cart: "Xool",
+        check_qty: "Saytu lim bi",
+        clear_cart: "🗑️ Luut",
+        btn_cash: "💰 JAP XAALIS",
+        btn_cash_sub: "(Tey tey ji)",
+        btn_credit: "📝 LEB / AÑSALA",
+        btn_credit_sub: "(Kaye Bor)",
+        welcome_title: "DALAL AK JAMM BOUTIK'GAME",
+        welcome_sub: "Naka nga bëggë defee sa kumpa? Su jamono jeeje, xaalis bi day dellu 0 te defaru.",
+        cycle_7d: "Ayubés bu nek",
+        cycle_7d_sub: "Dellu 0 fan 7 bu nek",
+        cycle_14d: "Fan 14 bu nek",
+        cycle_14d_sub: "Dellu 0 fan 14 bu nek",
+        cycle_30d: "Weer bu nek",
+        cycle_30d_sub: "Dellu 0 fan 30 bu nek",
+        cycle_choose: "Tànn →",
+        cycle_footer: "Mën nga ko soppi saa yu la nexe.",
+        history_title: "📊 Komp & Jaara-jaara",
+        tab_daily: "📅 Bes bu nek",
+        tab_cycle: "⚙️ Jamono & Dàŋk",
+        today: "Tey",
+        yesterday: "Demb",
+        daily_sales: "Jaayante tey",
+        daily_profit: "Njariñu tey",
+        no_sales_day: "Amul benn jaayante tey.",
+        cancel: "Bàyyi",
+        prod_count_suffix: "fecc.",
+        active_cycle_duration: "Jamono bi ngi dox:",
+        "7_days": "Fan 7",
+        "14_days": "Fan 14",
+        "30_days": "Fan 30",
+        test_reset_title: "🧪 Natt & Dellalu 0",
+        test_reset_sub: "Bëgg nga jeexal jamono bi sisa? Xaalis bi day dellu 0 FCFA.",
+        btn_force_reset: "⚡ Jeexal jamono bi",
+        archived_cycles: "📦 Jamono yef laay",
+        no_archives: "Dara nekkul fi faw.",
+        add_prod_title: "📷 Jël Nataal Bagas",
+        photo_label: "Nataalu bagas bi (Kamera)",
+        change_photo: "Soppi nataal",
+        take_prod_photo: "Jël nataal tey",
+        photo_auto_fill: "Nataal bi day am melo",
+        prod_name: "Turu Bagas bi",
+        cost_price: "Njëgu Jënd (F)",
+        sell_price: "Njëgu Jaay (F)",
+        create_tile: "Defar Bagas",
+        credit_title: "📙 Kaye Bor",
+        credit_sub: "Kan nga jox bagas bi ci bor?",
+        frequent_clients: "Sànnt yiy faral di ñëw",
+        client_name_label: "Turu Nit ki",
+        confirm_credit: "Dëggal Bor bi",
+        credits_modal_title: "📖 Boru Nit yi",
+        no_credits: "Benn bor nekkul fi 👍",
+        paid_btn: "✓ Fay na",
+        take_photo_tile: "Jël Nataal",
+        add_new_sub: "+ Bagas Bu Yees",
+        cycle_tag_prefix: "Jamono:",
+        days_short: "F",
+        delete_confirm_title: "Dindi bagas bii?",
+        confirm_delete_btn: "Dindi",
+        edit_mode_on: "Dindi bagas: bës ci bagas bi 🗑️",
+        edit_mode_off: "Jaayante bu baax",
+        item_deleted: "Bagas bi dindi nañu ko"
+      },
+      ff: { // Pular / Peul (Fulfulde)
+        lang_name: "Pular / Peul",
+        lang_modal_title: "SUBAGOL ƊEMNGAL",
+        lang_modal_sub: "Subo ɗemngal mo kuutortaa:",
+        ca_label: "💰 Kaalis Fuu",
+        profit_label: "📈 Keɓal (Ribu)",
+        bilan_btn: "Limogal →",
+        cat_all: "✨ Fuu",
+        cat_hygiene: "🪥 Cellal",
+        cat_epicerie: "🌾 Ñamdu",
+        cat_boissons: "🥤 Njardam",
+        cat_frais: "🥖 Kesum",
+        cart_title: "Siluu",
+        check_cart: "Ndutito",
+        check_qty: "Ƴeew keewal",
+        clear_cart: "🗑️ Looh",
+        btn_cash: "💰 HEƁTA KAALIS",
+        btn_cash_sub: "(Jooni Jooni)",
+        btn_credit: "📝 NYAMAANDE",
+        btn_credit_sub: "(Deftere Nyamaande)",
+        welcome_title: "BISIMILLAH BOUTIK'GAME",
+        welcome_sub: "Hol no njiɗ-ɗaa waɗde limogal ma? So sahaa ɓennii, kaalis am artidat ko e 0.",
+        cycle_7d: "Yontere Kala",
+        cycle_7d_sub: "Artirde e 0 balɗe 7 kala",
+        cycle_14d: "Balɗe 14 Kala",
+        cycle_14d_sub: "Artirde e 0 balɗe 14 kala",
+        cycle_30d: "Lewru Kala",
+        cycle_30d_sub: "Artirde e 0 balɗe 30 kala",
+        cycle_choose: "Subo →",
+        cycle_footer: "Aɗa waawi waylude ɗum sahaa kala.",
+        history_title: "📊 Limogal & Taariha",
+        tab_daily: "📅 Ñalnde Kala",
+        tab_cycle: "⚙️ Sahaa & Moftirdum",
+        today: "Hande",
+        yesterday: "Haŋki",
+        daily_sales: "Coodgu hande",
+        daily_profit: "Ribu hande",
+        no_sales_day: "Hay soodgu gooto alaa hande.",
+        cancel: "Haantukil",
+        prod_count_suffix: "huunde.",
+        active_cycle_duration: "Sahaa gollordo jooni:",
+        "7_days": "Balɗe 7",
+        "14_days": "Balɗe 14",
+        "30_days": "Balɗe 30",
+        test_reset_title: "🧪 Ƴeewndo & Artirde e 0",
+        test_reset_sub: "Aɗa fannoo haɗde sahaa gollordo? Kaalis artata ko e 0 FCFA.",
+        btn_force_reset: "⚡ Haɗde jooni (RàZ)",
+        archived_cycles: "📦 Sahaaji ɓennuɗi",
+        no_archives: "Hay huunde alaa ko mofta.",
+        add_prod_title: "📷 Ɓamtude Foto Huunde",
+        photo_label: "Foto huunde (Kamera)",
+        change_photo: "Waylu foto",
+        take_prod_photo: "Ɓamuto foto jooni",
+        photo_auto_fill: "Foto maa hebbin",
+        prod_name: "Innde Huunde",
+        cost_price: "Coodgu Soode (F)",
+        sell_price: "Coodgu Yeeyde (F)",
+        create_tile: "Tagu Huunde",
+        credit_title: "📙 Deftere Nyamaande",
+        credit_sub: "Hombo Rokku-ɗaa nyamaande?",
+        frequent_clients: "Remoocennuuɓe",
+        client_name_label: "Innde Yimɓe",
+        confirm_credit: "Tabintin Nyamaande",
+        credits_modal_title: "📖 Nyamaale Yimɓe",
+        no_credits: "Hay nyamaande alaa 👍",
+        paid_btn: "✓ Yoɓama",
+        take_photo_tile: "Ɓamuto Foto",
+        add_new_sub: "+ Huunde Hesre",
+        cycle_tag_prefix: "Sahaa:",
+        days_short: "B",
+        delete_confirm_title: "Momtude ndee huunde?",
+        confirm_delete_btn: "Momtu",
+        edit_mode_on: "Momtugol: mem huunde 🗑️",
+        edit_mode_off: "Yeeyirde",
+        item_deleted: "Huunde momtaama"
+      },
+      ar: { // Arabe & Hassaniya
+        lang_name: "العربية / الحسانية",
+        lang_modal_title: "اختيار اللغة",
+        lang_modal_sub: "اختر لغة العمل في التطبيق:",
+        ca_label: "💰 المبيعات",
+        profit_label: "📈 الربح",
+        bilan_btn: "التقرير ←",
+        cat_all: "✨ الكل",
+        cat_hygiene: "🪥 العناية",
+        cat_epicerie: "🌾 البقالة",
+        cat_boissons: "🥤 المشروبات",
+        cat_frais: "🥖 طازج",
+        cart_title: "السلة",
+        check_cart: "التفاصيل",
+        check_qty: "تأكد من الكميات",
+        clear_cart: "🗑️ تفريغ",
+        btn_cash: "💰 قبض الثمن",
+        btn_cash_sub: "(نقداً / كاش)",
+        btn_credit: "📝 بيع بالدين",
+        btn_credit_sub: "(دفتر الديون)",
+        welcome_title: "مرحباً بك في بوتيك جيم",
+        welcome_sub: "كم مرة تريد مراجعة حساباتك؟ في نهاية كل فترة يتم تصفير الصندوق وأرشفة التقارير تلقائياً.",
+        cycle_7d: "أسبوعياً",
+        cycle_7d_sub: "إعادة الضبط كل 7 أيام",
+        cycle_14d: "كل أسبوعين",
+        cycle_14d_sub: "إعادة الضبط كل 14 يوماً",
+        cycle_30d: "شهرياً",
+        cycle_30d_sub: "إعادة الضبط كل 30 يوماً",
+        cycle_choose: "اختيار ←",
+        cycle_footer: "يمكنك تغيير هذا الخيار في أي وقت من الإعدادات.",
+        history_title: "📊 التقرير والسجل",
+        tab_daily: "📅 يوم بيوم",
+        tab_cycle: "⚙️ الدورة والأرشيف",
+        today: "اليوم",
+        yesterday: "أمس",
+        daily_sales: "مبيعات اليوم",
+        daily_profit: "أرباح اليوم",
+        no_sales_day: "لا توجد مبيعات مسجلة لهذا اليوم.",
+        cancel: "إلغاء",
+        prod_count_suffix: "منتج",
+        active_cycle_duration: "مدة الدورة الحالية:",
+        "7_days": "7 أيام",
+        "14_days": "14 يوماً",
+        "30_days": "30 يوماً",
+        test_reset_title: "🧪 تجربة وإعادة ضبط",
+        test_reset_sub: "هل تريد إغلاق الدورة الحالية الآن؟ سيتم أرشفة البيانات ويعود الرصيد إلى 0 د.إ / فرنك.",
+        btn_force_reset: "⚡ إغلاق الفترة الآن (RàZ)",
+        archived_cycles: "📦 الدورات المؤرشفة",
+        no_archives: "لا يوجد أرشيف سابق حتى الآن.",
+        add_prod_title: "📷 التقاط صورة للمنتج",
+        photo_label: "صورة المنتج (كاميرا / ملف)",
+        change_photo: "تغيير الصورة",
+        take_prod_photo: "التقط صورة للمنتج",
+        photo_auto_fill: "ستملأ الصورة البطاقة تلقائياً",
+        prod_name: "اسم المنتج",
+        cost_price: "سعر الشراء (F)",
+        sell_price: "سعر البيع (F)",
+        create_tile: "إنشاء البطاقة",
+        credit_title: "📙 دفتر الديون",
+        credit_sub: "من الزبون الذي أخذ هذه البضاعة بالدين؟",
+        frequent_clients: "زبائن دائمون",
+        client_name_label: "اسم الزبون",
+        confirm_credit: "تأكيد البيع بالدين",
+        credits_modal_title: "📖 ديون الزبائن",
+        no_credits: "لا توجد ديون قائمة 👍",
+        paid_btn: "✓ تم السداد",
+        take_photo_tile: "صورة جديد",
+        add_new_sub: "+ منتج جديد",
+        cycle_tag_prefix: "الدورة:",
+        days_short: "ي",
+        delete_confirm_title: "هل تريد حذف هذا المنتج؟",
+        confirm_delete_btn: "حذف",
+        edit_mode_on: "وضع الحذف: اضغط على المنتج لحذفه 🗑️",
+        edit_mode_off: "وضع البيع العادي",
+        item_deleted: "تم حذف المنتج"
+      }
+    };
+
+    let currentLang = 'fr';
+
+    // Default items (2 exemples de départ)
+    let products = [
+      {
+        id: '1',
+        name: 'Dentifrice Rouge 75ml',
+        img: 'https://images.unsplash.com/photo-1559598467-f8b76c8155d0?auto=format&fit=crop&w=400&h=400&q=80',
+        price: 500,
+        cost: 350,
+        cat: 'hygiene',
+        borderColor: 'border-red-500'
+      },
+      {
+        id: '4',
+        name: 'Bouteille d\'Huile 1L',
+        img: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=400&h=400&q=80',
+        price: 1500,
+        cost: 1200,
+        cat: 'epicerie',
+        borderColor: 'border-amber-500'
+      }
+    ];
+
+    let cart = {}; // { productId: count }
+    let dailySales = []; // Active period sales
+    let credits = []; // Active period credits
+    let archivedCycles = []; // Historical past completed cycles
+    
+    // Cycle Configuration State
+    let cycleConfig = {
+      durationDays: 7, // 7, 14, 30
+      startDate: null,
+      endDate: null
+    };
+
+    let selectedHistoryDate = new Date();
+    let activeCategory = 'all';
+    let soundEnabled = true;
+    let isCartExpanded = false;
+    let isEditMode = false;
+    let productIdToDelete = null;
+    let tempUploadedImageData = null;
+    let isApplyingCloudData = false;
+
+    // --- WEB AUDIO API SYNTHESIZERS ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('btn-sound-toggle');
+      btn.innerHTML = soundEnabled ? '🔊' : '🔇';
+      showToast(soundEnabled ? getTranslation('toast_sound_on', 'Effets sonores activés 🔊') : getTranslation('toast_sound_off', 'Mode silencieux 🔇'));
+    }
+
+    function playPopSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(850, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch(e){}
+    }
+
+    function playCoinSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'triangle';
+        osc2.type = 'square';
+
+        osc1.frequency.setValueAtTime(987.77, now);
+        osc1.frequency.setValueAtTime(1318.51, now + 0.08);
+
+        osc2.frequency.setValueAtTime(493.88, now);
+        osc2.frequency.setValueAtTime(659.25, now + 0.08);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.35);
+        osc2.stop(now + 0.35);
+      } catch(e){}
+    }
+
+    function playDeleteSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+      } catch(e){}
+    }
+
+    // --- INITIALIZATION & STATE MANAGEMENT ---
+    window.onload = function() {
+      setupAppIconsAndManifest();
+      loadState();
+      applyLanguage(currentLang);
+      checkCycleExpiration();
+      renderProducts();
+      updateCartDisplay();
+      updateScoreboard();
+    };
+
+    // Génère un PNG haute résolution depuis l'icône SVG pour Android PWA & écran d'accueil
+    function setupAppIconsAndManifest() {
+      try {
+        const svgData = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+          <defs><clipPath id="r"><rect width="512" height="512" rx="115"/></clipPath></defs>
+          <g clip-path="url(#r)">
+            <rect width="512" height="512" fill="#102542"/>
+            <g fill="none" stroke="#d97706" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M0 95 L95 0 M0 120 L120 0 M15 95 L45 95 L45 65 M65 45 L95 45 L95 15"/>
+              <path d="M512 95 L417 0 M512 120 L392 0 M497 95 L467 95 L467 65 M447 45 L417 45 L417 15"/>
+              <path d="M0 417 L95 512 M0 392 L120 512 M15 417 L45 417 L45 447 M65 467 L95 467 L95 497"/>
+              <path d="M512 417 L417 512 M512 392 L392 512 M497 417 L467 417 L467 447 M447 467 L417 467 L417 497"/>
+            </g>
+            <g stroke="#1e1b18" stroke-width="10" stroke-linejoin="round">
+              <rect x="255" y="185" width="18" height="45" fill="#d97706"/>
+              <rect x="225" y="138" width="78" height="50" rx="10" fill="#fbbf24"/>
+              <rect x="237" y="148" width="54" height="30" rx="5" fill="#10b981"/>
+              <path d="M105 320 L315 320 L315 375 C315 385 307 392 297 392 L123 392 C113 392 105 385 105 375 Z" fill="#ea580c"/>
+              <rect x="122" y="336" width="176" height="40" rx="6" fill="#10b981"/>
+              <circle cx="210" cy="356" r="8" fill="#fbbf24"/>
+              <path d="M132 225 L292 225 L315 320 L105 320 Z" fill="#fbbf24"/>
+              <path d="M145 242 L222 242 L230 302 L135 302 Z" fill="#fef3c7"/>
+              <path d="M165 242 L158 302 M195 242 L192 302 M141 262 L225 262 M138 282 L228 282" stroke-width="6"/>
+              <rect x="242" y="242" width="38" height="22" rx="4" fill="#10b981" stroke-width="7"/>
+              <rect x="244" y="274" width="38" height="28" rx="4" fill="#ea580c" stroke-width="7"/>
+              <path d="M165 225 L165 182 C165 174 172 168 180 168 L205 168 C213 168 220 174 220 182 L220 225 Z" fill="#fffbeb"/>
+              <path d="M180 188 L205 188 M180 204 L205 204" stroke-width="7" stroke-linecap="round"/>
+              <path d="M280 295 C280 355 305 390 365 390 C425 390 450 355 450 295 Z" fill="#d97706"/>
+              <path d="M300 295 C300 225 430 225 430 295" fill="none" stroke="#92400e" stroke-width="14"/>
+              <rect x="312" y="262" width="34" height="36" rx="6" fill="#10b981"/>
+              <rect x="352" y="252" width="36" height="46" rx="8" fill="#f97316"/>
+              <rect x="392" y="268" width="28" height="30" rx="5" fill="#ef4444"/>
+              <path d="M282 325 L448 325 M292 355 L438 355 M335 295 L335 385 M395 295 L395 385" stroke-width="7"/>
+              <ellipse cx="195" cy="115" rx="22" ry="28" transform="rotate(-25 195 115)" fill="#fbbf24"/>
+              <ellipse cx="115" cy="180" rx="20" ry="26" transform="rotate(-45 115 180)" fill="#fbbf24"/>
+              <ellipse cx="355" cy="115" rx="22" ry="28" transform="rotate(25 355 115)" fill="#fbbf24"/>
+              <ellipse cx="405" cy="185" rx="20" ry="26" transform="rotate(45 405 185)" fill="#fbbf24"/>
+            </g>
+          </g>
+        </svg>`;
+
+        const img = new Image();
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = 512;
+          canvas.height = 512;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, 512, 512);
+          const pngUrl = canvas.toDataURL('image/png');
+          URL.revokeObjectURL(url);
+
+          const appleIcon = document.getElementById('apple-touch-icon');
+          if (appleIcon) appleIcon.href = pngUrl;
+
+          const manifest = {
+            name: "Boutik'Game - Caisse Visuelle",
+            short_name: "Boutik'Game",
+            start_url: window.location.href,
+            display: "standalone",
+            background_color: "#0f172a",
+            theme_color: "#0f172a",
+            icons: [
+              { src: pngUrl, sizes: "192x192", type: "image/png" },
+              { src: pngUrl, sizes: "512x512", type: "image/png" }
+            ]
+          };
+          const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+          const manifestLink = document.createElement('link');
+          manifestLink.rel = 'manifest';
+          manifestLink.href = URL.createObjectURL(manifestBlob);
+          document.head.appendChild(manifestLink);
+        };
+        img.src = url;
+      } catch (e) {
+        console.warn("Erreur génération icône PWA :", e);
+      }
+    }
+
+    function loadState() {
+      const savedLang = localStorage.getItem('pos_lang');
+      const savedCycle = localStorage.getItem('pos_cycle_config');
+      const savedSales = localStorage.getItem('pos_daily_sales');
+      const savedCredits = localStorage.getItem('pos_credits');
+      const savedArchives = localStorage.getItem('pos_archived_cycles');
+      const savedProds = localStorage.getItem('pos_custom_products');
+
+      if (savedLang && i18n[savedLang]) currentLang = savedLang;
+      if (savedSales) dailySales = JSON.parse(savedSales);
+      if (savedCredits) credits = JSON.parse(savedCredits);
+      if (savedArchives) archivedCycles = JSON.parse(savedArchives);
+      if (savedProds) products = JSON.parse(savedProds);
+
+      if (savedCycle) {
+        cycleConfig = JSON.parse(savedCycle);
+      } else {
+        // Open language choice modal first if no language was chosen, then cycle modal
+        if (!savedLang) {
+          openModal('modal-language');
+        } else {
+          openModal('modal-cycle-setup');
+        }
+      }
+    }
+
+    function saveState() {
+      const statePayload = {
+        lang: currentLang,
+        cycleConfig: cycleConfig,
+        dailySales: dailySales,
+        credits: credits,
+        archivedCycles: archivedCycles,
+        products: products
+      };
+
+      try {
+        localStorage.setItem('pos_lang', currentLang);
+        localStorage.setItem('pos_cycle_config', JSON.stringify(cycleConfig));
+        localStorage.setItem('pos_daily_sales', JSON.stringify(dailySales));
+        localStorage.setItem('pos_credits', JSON.stringify(credits));
+        localStorage.setItem('pos_archived_cycles', JSON.stringify(archivedCycles));
+        localStorage.setItem('pos_custom_products', JSON.stringify(products));
+      } catch (e) {
+        console.warn("Mémoire locale saturée :", e);
+      }
+
+      // Synchronisation automatique vers la base de données Cloud
+      if (!isApplyingCloudData && window.saveToCloudDatabase) {
+        window.saveToCloudDatabase(statePayload);
+      }
+    }
+
+    window.pushStateToCloud = function() {
+      saveState();
+    };
+
+    window.applyCloudSnapshot = function(data) {
+      if (!data) return;
+      isApplyingCloudData = true;
+      try {
+        if (data.lang && i18n[data.lang]) currentLang = data.lang;
+        if (data.cycleConfig && data.cycleConfig.startDate) cycleConfig = data.cycleConfig;
+        if (Array.isArray(data.dailySales)) dailySales = data.dailySales;
+        if (Array.isArray(data.credits)) credits = data.credits;
+        if (Array.isArray(data.archivedCycles)) archivedCycles = data.archivedCycles;
+        if (Array.isArray(data.products) && data.products.length > 0) products = data.products;
+
+        // Fermer les modales de configuration initiale si déjà configuré dans le cloud
+        if (cycleConfig.startDate) {
+          document.getElementById('modal-language').classList.add('hidden');
+          document.getElementById('modal-cycle-setup').classList.add('hidden');
+        }
+
+        applyLanguage(currentLang);
+        renderProducts();
+        updateCartDisplay();
+        updateScoreboard();
+      } finally {
+        isApplyingCloudData = false;
+      }
+    };
+
+    // --- EDIT / DELETE PRODUCTS MODE ---
+    function toggleEditMode() {
+      playPopSound();
+      isEditMode = !isEditMode;
+      const btn = document.getElementById('btn-edit-mode');
+      if (isEditMode) {
+        btn.className = "w-7 h-7 rounded-lg bg-red-600 text-white active:scale-95 flex items-center justify-center text-xs border border-red-400 shadow-lg animate-pulse transition";
+        showToast(getTranslation('edit_mode_on', 'Mode suppression : touchez un article 🗑️'));
+      } else {
+        btn.className = "w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 active:scale-95 flex items-center justify-center text-xs border border-slate-600 transition";
+        showToast(getTranslation('edit_mode_off', 'Mode vente normal'));
+      }
+      renderProducts();
+    }
+
+    function promptDeleteProduct(productId, event) {
+      if (event) event.stopPropagation();
+      playPopSound();
+      const prod = products.find(p => p.id === productId);
+      if (!prod) return;
+
+      productIdToDelete = productId;
+      document.getElementById('delete-prod-name').innerText = prod.name;
+      openModal('modal-confirm-delete');
+    }
+
+    function confirmDeleteProduct() {
+      if (!productIdToDelete) return;
+      playDeleteSound();
+
+      products = products.filter(p => p.id !== productIdToDelete);
+      if (cart[productIdToDelete]) {
+        delete cart[productIdToDelete];
+      }
+
+      productIdToDelete = null;
+      closeModal('modal-confirm-delete');
+      saveState();
+      renderProducts();
+      updateCartDisplay();
+      showToast(getTranslation('item_deleted', 'Article supprimé'));
+    }
+
+    // --- LANGUAGE SWITCHING ---
+    function setLanguage(langKey) {
+      if (!i18n[langKey]) return;
+      playPopSound();
+      currentLang = langKey;
+      saveState();
+      applyLanguage(currentLang);
+      closeModal('modal-language');
+
+      // If cycle is not setup yet, show cycle modal
+      if (!cycleConfig.startDate) {
+        openModal('modal-cycle-setup');
+      }
+    }
+
+    function applyLanguage(lang) {
+      const dict = i18n[lang] || i18n.fr;
+      
+      // Document direction (RTL for Arabic)
+      if (lang === 'ar') {
+        document.documentElement.setAttribute('dir', 'rtl');
+      } else {
+        document.documentElement.setAttribute('dir', 'ltr');
+      }
+
+      // Update badge
+      document.getElementById('current-lang-badge').innerText = lang.toUpperCase();
+
+      // Translate all static data-i18n elements
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+          el.innerText = dict[key];
+        }
+      });
+
+      renderProducts();
+      updateScoreboard();
+    }
+
+    function getTranslation(key, fallback = '') {
+      const dict = i18n[currentLang] || i18n.fr;
+      return dict[key] || fallback;
+    }
+
+    // --- CYCLE MANAGEMENT ---
+    function selectCycleDuration(days) {
+      playCoinSound();
+      const now = new Date();
+      const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+      cycleConfig = {
+        durationDays: days,
+        startDate: now.toISOString(),
+        endDate: endDate.toISOString()
+      };
+
+      saveState();
+      closeModal('modal-cycle-setup');
+      updateScoreboard();
+      showToast(`Cycle de ${days} jours activé ! 🚀`);
+    }
+
+    function changeCycleDuration(days) {
+      playPopSound();
+      const now = new Date();
+      const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+      cycleConfig.durationDays = days;
+      cycleConfig.startDate = now.toISOString();
+      cycleConfig.endDate = endDate.toISOString();
+
+      saveState();
+      updateScoreboard();
+      showToast(`Durée : ${days} ${getTranslation('days_short', 'J')}`);
+    }
+
+    function checkCycleExpiration() {
+      if (!cycleConfig.endDate) return;
+
+      const now = new Date();
+      const endDate = new Date(cycleConfig.endDate);
+
+      if (now >= endDate) {
+        archiveAndResetCycle("Clôture automatique de fin de période");
+      }
+    }
+
+    function forceResetCycle() {
+      playCoinSound();
+      triggerConfetti();
+      archiveAndResetCycle("Clôture manuelle (Simulation)");
+      showToast(getTranslation('toast_period_archived', "Période archivée !"));
+    }
+
+    function archiveAndResetCycle(reason) {
+      let totalCA = 0;
+      let totalProfit = 0;
+      dailySales.forEach(s => {
+        totalCA += s.total;
+        totalProfit += s.profit;
+      });
+
+      const archivedRecord = {
+        id: Date.now().toString(),
+        durationDays: cycleConfig.durationDays,
+        startDate: cycleConfig.startDate,
+        endDate: new Date().toISOString(),
+        totalCA: totalCA,
+        totalProfit: totalProfit,
+        salesCount: dailySales.length,
+        creditsCount: credits.length,
+        reason: reason
+      };
+
+      archivedCycles.unshift(archivedRecord);
+
+      dailySales = [];
+      credits = [];
+
+      const now = new Date();
+      const newEndDate = new Date(now.getTime() + cycleConfig.durationDays * 24 * 60 * 60 * 1000);
+      cycleConfig.startDate = now.toISOString();
+      cycleConfig.endDate = newEndDate.toISOString();
+
+      saveState();
+      updateScoreboard();
+    }
+
+    function formatFCFA(amount) {
+      return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+    }
+
+    function formatDateString(dateObj) {
+      const d = new Date(dateObj);
+      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // --- RENDER PRODUCTS GRID (3 COLUMNS COMPACT FOR ANDROID) ---
+    function renderProducts() {
+      const grid = document.getElementById('product-grid');
+      grid.innerHTML = '';
+
+      const filtered = activeCategory === 'all' 
+        ? products 
+        : products.filter(p => p.cat === activeCategory);
+
+      filtered.forEach(product => {
+        const count = cart[product.id] || 0;
+        
+        const card = document.createElement('div');
+        card.className = `card-game relative rounded-xl border-2 ${isEditMode ? 'border-red-500/80 ring-1 ring-red-500/40' : (product.borderColor || 'border-slate-700')} overflow-hidden cursor-pointer select-none group bg-slate-950 aspect-square flex flex-col`;
+        
+        if (isEditMode) {
+          card.setAttribute('onclick', `promptDeleteProduct('${product.id}', event)`);
+        } else {
+          card.setAttribute('onclick', `addToCart('${product.id}', event)`);
+        }
+
+        card.innerHTML = `
+          <!-- Full-Bleed 100% Image Container -->
+          <div class="w-full h-full relative overflow-hidden bg-slate-900">
+            <img src="${product.img}" alt="${product.name}" class="w-full h-full object-cover object-center ${isEditMode ? 'opacity-75' : 'group-hover:scale-105'} transition-transform duration-200" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x400/1e293b/ffffff?text=PHOTO'">
+            
+            <!-- Gradient Overlay for Legibility -->
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent"></div>
+
+            <!-- Delete Overlay Icon in Edit Mode -->
+            ${isEditMode ? `
+              <div class="absolute inset-0 flex items-center justify-center z-30 bg-red-950/20">
+                <div class="w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center text-base shadow-xl border-2 border-white">
+                  🗑️
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Quantity Badge (Top Right) -->
+            ${!isEditMode && count > 0 ? `
+              <div class="absolute top-1 right-1 bg-brand-yellow text-slate-950 font-game text-[10px] px-1.5 py-0.2 rounded-full border border-slate-950 shadow animate-bounce-short z-20">
+                x${count}
+              </div>
+            ` : ''}
+
+            <!-- Quick Decrement Button (Top Left) -->
+            ${!isEditMode && count > 0 ? `
+              <button onclick="decrementItem('${product.id}', event)" class="absolute top-1 left-1 bg-red-600 hover:bg-red-500 text-white font-black w-5 h-5 rounded-full flex items-center justify-center text-xs shadow border border-slate-950 z-20 active:scale-90 transition">
+                -
+              </button>
+            ` : ''}
+
+            <!-- Product Details Overlaid at Bottom -->
+            <div class="absolute bottom-0 left-0 right-0 p-1.5 z-10 flex flex-col justify-end">
+              <h3 class="font-bold text-[10px] leading-tight text-white line-clamp-1 drop-shadow">${product.name}</h3>
+              <div class="mt-0.5 flex items-center justify-between">
+                <span class="font-game text-[9px] text-brand-yellow bg-slate-950/90 px-1 py-0.2 rounded border border-brand-yellow/30 shadow-sm">
+                  ${formatFCFA(product.price)}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+
+      // Special "+ Prendre Photo" Tile Compact
+      const addTile = document.createElement('div');
+      addTile.className = "card-game rounded-xl aspect-square border-2 border-dashed border-brand-yellow/70 bg-slate-800/80 hover:bg-slate-800 flex flex-col items-center justify-center cursor-pointer text-brand-yellow transition p-1 shadow";
+      addTile.setAttribute('onclick', "openModal('modal-add-product')");
+      addTile.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-brand-yellow/10 flex items-center justify-center text-base mb-1 border border-brand-yellow/30 shadow-inner">📸</div>
+        <span class="font-game text-[9px] text-center leading-tight">${getTranslation('take_photo_tile', 'Prendre Photo')}</span>
+        <span class="text-[8px] font-sans font-bold text-slate-400 mt-0.5">${getTranslation('add_new_sub', '+ Nouveauté')}</span>
+      `;
+      grid.appendChild(addTile);
+    }
+
+    // --- CATEGORY FILTERING ---
+    function filterCategory(cat, btn) {
+      playPopSound();
+      activeCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => {
+        b.classList.remove('bg-brand-yellow', 'text-slate-900', 'font-black');
+        b.classList.add('bg-slate-700', 'text-slate-300', 'font-bold');
+      });
+      btn.classList.remove('bg-slate-700', 'text-slate-300', 'font-bold');
+      btn.classList.add('bg-brand-yellow', 'text-slate-900', 'font-black');
+      renderProducts();
+    }
+
+    // --- CART LOGIC ---
+    function addToCart(productId, event) {
+      if (event) event.stopPropagation();
+      playPopSound();
+
+      cart[productId] = (cart[productId] || 0) + 1;
+      renderProducts();
+      updateCartDisplay();
+    }
+
+    function decrementItem(productId, event) {
+      if (event) event.stopPropagation();
+      playDeleteSound();
+
+      if (cart[productId]) {
+        cart[productId]--;
+        if (cart[productId] <= 0) {
+          delete cart[productId];
+        }
+      }
+      renderProducts();
+      updateCartDisplay();
+    }
+
+    function clearCart() {
+      playDeleteSound();
+      cart = {};
+      renderProducts();
+      updateCartDisplay();
+      if (isCartExpanded) toggleCartExpand();
+      showToast(getTranslation('toast_cart_cleared', 'Panier vidé'));
+    }
+
+    function updateCartDisplay() {
+      let totalCount = 0;
+      let totalPrice = 0;
+
+      const listContainer = document.getElementById('cart-items-list');
+      listContainer.innerHTML = '';
+
+      for (let pid in cart) {
+        const count = cart[pid];
+        const prod = products.find(p => p.id === pid);
+        if (prod) {
+          totalCount += count;
+          totalPrice += prod.price * count;
+
+          const line = document.createElement('div');
+          line.className = "flex items-center justify-between bg-slate-800 p-1.5 rounded-lg border border-slate-700";
+          line.innerHTML = `
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded overflow-hidden bg-slate-950 border border-slate-600 shrink-0">
+                <img src="${prod.img}" class="w-full h-full object-cover">
+              </div>
+              <div>
+                <div class="text-[10px] font-bold text-slate-100 line-clamp-1">${prod.name}</div>
+                <div class="text-[9px] text-slate-400">${formatFCFA(prod.price)} / un.</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <div class="flex items-center bg-slate-900 rounded border border-slate-700 p-0.5">
+                <button onclick="decrementItem('${prod.id}', event)" class="w-5 h-5 rounded bg-slate-800 text-white font-bold flex items-center justify-center text-xs active:bg-red-600"> - </button>
+                <span class="px-1.5 font-game text-[10px] text-brand-yellow">${count}</span>
+                <button onclick="addToCart('${prod.id}', event)" class="w-5 h-5 rounded bg-slate-800 text-white font-bold flex items-center justify-center text-xs active:bg-green-600"> + </button>
+              </div>
+              <span class="font-game text-[10px] text-white min-w-[55px] text-right">${formatFCFA(prod.price * count)}</span>
+            </div>
+          `;
+          listContainer.appendChild(line);
+        }
+      }
+
+      document.getElementById('cart-badge-count').innerText = totalCount;
+      document.getElementById('cart-total-display').innerText = formatFCFA(totalPrice);
+    }
+
+    function toggleCartExpand() {
+      playPopSound();
+      isCartExpanded = !isCartExpanded;
+      const content = document.getElementById('cart-expandable-content');
+      const arrow = document.getElementById('arrow-icon');
+      
+      if (isCartExpanded) {
+        content.classList.remove('hidden');
+        content.classList.add('flex');
+        arrow.style.transform = 'rotate(180deg)';
+      } else {
+        content.classList.add('hidden');
+        content.classList.remove('flex');
+        arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    // --- SALES & CREDIT VALIDATION ---
+    function handleValidation(type) {
+      const itemKeys = Object.keys(cart);
+      if (itemKeys.length === 0) {
+        showToast(getTranslation('toast_cart_empty', '⚠️ Le panier est vide !'));
+        return;
+      }
+
+      if (type === 'sale') {
+        completeSale(false);
+      }
+    }
+
+    function openCreditDrawer() {
+      const itemKeys = Object.keys(cart);
+      if (itemKeys.length === 0) {
+        showToast(getTranslation('toast_cart_empty', '⚠️ Le panier est vide !'));
+        return;
+      }
+      openModal('modal-credit-client');
+    }
+
+    function selectClientName(name) {
+      playPopSound();
+      document.getElementById('credit-client-name').value = name;
+    }
+
+    function confirmCreditSale() {
+      const clientName = document.getElementById('credit-client-name').value.trim();
+      if (!clientName) {
+        showToast(getTranslation('toast_enter_client', '⚠️ Entrez le nom du client'));
+        return;
+      }
+      closeModal('modal-credit-client');
+      completeSale(true, clientName);
+    }
+
+    function completeSale(isCredit = false, clientName = '') {
+      playCoinSound();
+      triggerConfetti();
+
+      let saleTotal = 0;
+      let saleProfit = 0;
+      let itemsSummary = [];
+
+      for (let pid in cart) {
+        const prod = products.find(p => p.id === pid);
+        const qty = cart[pid];
+        if (prod) {
+          saleTotal += prod.price * qty;
+          saleProfit += (prod.price - prod.cost) * qty;
+          itemsSummary.push({ name: prod.name, qty: qty, img: prod.img });
+        }
+      }
+
+      const now = new Date();
+      const saleRecord = {
+        id: Date.now().toString(),
+        dateIso: now.toISOString(),
+        time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        dateFormatted: formatDateString(now),
+        total: saleTotal,
+        profit: saleProfit,
+        items: itemsSummary,
+        isCredit: isCredit,
+        clientName: clientName
+      };
+
+      if (isCredit) {
+        credits.unshift(saleRecord);
+        showToast(`📝 Crédit : ${clientName}`);
+      } else {
+        dailySales.unshift(saleRecord);
+        showToast(`🎉 Vente : +${formatFCFA(saleTotal)}`);
+      }
+
+      cart = {};
+      saveState();
+      renderProducts();
+      updateCartDisplay();
+      if (isCartExpanded) toggleCartExpand();
+      updateScoreboard();
+    }
+
+    // --- SCOREBOARD UPDATE ---
+    function updateScoreboard() {
+      let totalCA = 0;
+      let totalProfit = 0;
+
+      dailySales.forEach(s => {
+        totalCA += s.total;
+        totalProfit += s.profit;
+      });
+
+      document.getElementById('stat-ca').innerText = formatFCFA(totalCA);
+      document.getElementById('stat-profit').innerText = '+' + formatFCFA(totalProfit);
+
+      document.getElementById('history-badge').innerText = dailySales.length;
+      document.getElementById('credits-badge').innerText = credits.length;
+
+      // Update Header Cycle Badge & Remaining Days
+      if (cycleConfig.endDate) {
+        const now = new Date();
+        const endDate = new Date(cycleConfig.endDate);
+        const diffTime = endDate - now;
+        const diffDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        
+        const prefix = getTranslation('cycle_tag_prefix', 'Cycle:');
+        const unit = getTranslation('days_short', 'J');
+        document.getElementById('header-cycle-tag').innerText = `${prefix} ${cycleConfig.durationDays}${unit}`;
+        document.getElementById('cycle-days-left').innerText = `${unit}-${diffDays}`;
+
+        // Highlight selected cycle option buttons
+        [7, 14, 30].forEach(d => {
+          const btn = document.getElementById(`cycle-opt-${d}`);
+          if (btn) {
+            if (cycleConfig.durationDays === d) {
+              btn.className = "flex-1 py-1 rounded-lg border-2 border-brand-yellow bg-brand-yellow/20 text-brand-yellow font-black text-[10px]";
+            } else {
+              btn.className = "flex-1 py-1 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 font-bold text-[10px]";
+            }
+          }
+        });
+      }
+
+      renderDayByDayHistory();
+      renderCreditsList();
+      renderArchivedCyclesList();
+    }
+
+    // --- HISTORIQUE JOUR PAR JOUR ---
+    function switchHistoryTab(tab) {
+      playPopSound();
+      const dailyBtn = document.getElementById('tab-btn-daily');
+      const cycleBtn = document.getElementById('tab-btn-cycle');
+      const dailyContent = document.getElementById('tab-content-daily');
+      const cycleContent = document.getElementById('tab-content-cycle');
+
+      if (tab === 'daily') {
+        dailyBtn.className = "flex-1 py-1.5 font-bold text-brand-yellow border-b-2 border-brand-yellow";
+        cycleBtn.className = "flex-1 py-1.5 font-bold text-slate-400";
+        dailyContent.classList.remove('hidden');
+        cycleContent.classList.add('hidden');
+      } else {
+        cycleBtn.className = "flex-1 py-1.5 font-bold text-brand-yellow border-b-2 border-brand-yellow";
+        dailyBtn.className = "flex-1 py-1.5 font-bold text-slate-400";
+        cycleContent.classList.remove('hidden');
+        dailyContent.classList.add('hidden');
+      }
+    }
+
+    function shiftSelectedDate(daysOffset) {
+      playPopSound();
+      selectedHistoryDate.setDate(selectedHistoryDate.getDate() + daysOffset);
+      renderDayByDayHistory();
+    }
+
+    function renderDayByDayHistory() {
+      const dateLabel = document.getElementById('selected-date-label');
+      const dateSub = document.getElementById('selected-date-sub');
+      const container = document.getElementById('history-day-list');
+      const dayCA = document.getElementById('day-stat-ca');
+      const dayProfit = document.getElementById('day-stat-profit');
+
+      const todayStr = formatDateString(new Date());
+      const selectedStr = formatDateString(selectedHistoryDate);
+
+      if (selectedStr === todayStr) {
+        dateLabel.innerText = getTranslation('today', "Aujourd'hui");
+      } else {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (selectedStr === formatDateString(yesterday)) {
+          dateLabel.innerText = getTranslation('yesterday', "Hier");
+        } else {
+          dateLabel.innerText = selectedHistoryDate.toLocaleDateString(currentLang, { weekday: 'short', day: 'numeric', month: 'short' });
+        }
+      }
+      dateSub.innerText = selectedStr;
+
+      const matchingSales = dailySales.filter(s => s.dateFormatted === selectedStr);
+
+      let totalDayCA = 0;
+      let totalDayProfit = 0;
+      matchingSales.forEach(s => {
+        totalDayCA += s.total;
+        totalDayProfit += s.profit;
+      });
+
+      dayCA.innerText = formatFCFA(totalDayCA);
+      dayProfit.innerText = '+' + formatFCFA(totalDayProfit);
+
+      if (matchingSales.length === 0) {
+        container.innerHTML = `<div class="text-[10px] text-slate-400 text-center py-6">${getTranslation('no_sales_day', 'Aucune vente enregistrée pour ce jour.')}</div>`;
+        return;
+      }
+
+      container.innerHTML = matchingSales.map(s => `
+        <div class="bg-slate-900 p-2 rounded-xl border border-slate-700 flex justify-between items-center">
+          <div>
+            <div class="text-[10px] font-bold text-white flex items-center gap-1">
+              <span>🕒 ${s.time}</span>
+              <span class="text-slate-400">(${s.items.length} ${getTranslation('prod_count_suffix', 'prod.')})</span>
+            </div>
+            <div class="text-[9px] text-slate-400 mt-0.5">
+              ${s.items.map(i => `${i.name} (x${i.qty})`).join(', ')}
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-game text-[10px] text-brand-green">${formatFCFA(s.total)}</div>
+            <button onclick="cancelSale('${s.id}')" class="text-[9px] text-red-400 hover:underline mt-0.5">${getTranslation('cancel', 'Annuler')}</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function cancelSale(saleId) {
+      playDeleteSound();
+      dailySales = dailySales.filter(s => s.id !== saleId);
+      saveState();
+      updateScoreboard();
+      showToast(getTranslation('toast_sale_cancelled', 'Vente annulée'));
+    }
+
+    // --- CREDITS LIST AND ARCHIVES RENDERING ---
+    function renderCreditsList() {
+      const container = document.getElementById('credits-list');
+      if (credits.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-400 text-center py-6">${getTranslation('no_credits', 'Aucune dette en cours 👍')}</div>`;
+        return;
+      }
+
+      container.innerHTML = credits.map(c => `
+        <div class="bg-slate-900 p-2 rounded-xl border border-slate-700 flex justify-between items-center">
+          <div>
+            <div class="text-[11px] font-bold text-brand-orange flex items-center gap-1">
+              <span>👤 ${c.clientName}</span>
+            </div>
+            <div class="text-[9px] text-slate-400 mt-0.5">
+              ${c.items.map(i => `${i.name} (x${i.qty})`).join(', ')}
+            </div>
+          </div>
+          <div class="text-right flex flex-col items-end gap-1">
+            <div class="font-game text-[10px] text-brand-yellow">${formatFCFA(c.total)}</div>
+            <button onclick="settleCredit('${c.id}')" class="px-2 py-0.5 rounded-md bg-brand-green hover:bg-emerald-600 text-white font-bold text-[9px] shadow">
+              ${getTranslation('paid_btn', '✓ Payé')}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function settleCredit(creditId) {
+      playCoinSound();
+      triggerConfetti();
+
+      const creditIdx = credits.findIndex(c => c.id === creditId);
+      if (creditIdx !== -1) {
+        const credit = credits[creditIdx];
+        const now = new Date();
+        dailySales.unshift({
+          ...credit,
+          dateIso: now.toISOString(),
+          time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          dateFormatted: formatDateString(now)
+        });
+        credits.splice(creditIdx, 1);
+        saveState();
+        updateScoreboard();
+        showToast(`Crédit de ${credit.clientName} encaissé ! 🎉`);
+      }
+    }
+
+    function renderArchivedCyclesList() {
+      const container = document.getElementById('archived-cycles-list');
+      if (archivedCycles.length === 0) {
+        container.innerHTML = `<div class="text-[10px] text-slate-400 text-center py-4 italic">${getTranslation('no_archives', 'Aucune archive passée.')}</div>`;
+        return;
+      }
+
+      container.innerHTML = archivedCycles.map(a => `
+        <div class="bg-slate-900 p-2 rounded-xl border border-slate-700 space-y-1">
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] font-bold text-brand-yellow">${getTranslation('cycle_tag_prefix', 'Cycle')} ${a.durationDays} ${getTranslation('days_short', 'J')}</span>
+            <span class="text-[9px] text-slate-400">${formatDateString(a.endDate)}</span>
+          </div>
+          <div class="flex justify-between text-[10px]">
+            <span class="text-slate-300">${getTranslation('ca_label', 'Total Encaissé')} :</span>
+            <span class="font-game text-white">${formatFCFA(a.totalCA)}</span>
+          </div>
+          <div class="flex justify-between text-[10px]">
+            <span class="text-slate-300">${getTranslation('profit_label', 'Bénéfice Net')} :</span>
+            <span class="font-game text-brand-green">+${formatFCFA(a.totalProfit)}</span>
+          </div>
+          <div class="text-[8px] text-slate-400 italic">${a.reason}</div>
+        </div>
+      `).join('');
+    }
+
+    // --- PHOTO CAPTURE & UPLOAD PREVIEW (WITH AUTOMATIC COMPRESSION) ---
+    function previewCapturedPhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          // Redimensionnement carré 250x250px pour éviter QuotaExceededError dans localStorage
+          const canvas = document.createElement('canvas');
+          const TARGET_SIZE = 250;
+          canvas.width = TARGET_SIZE;
+          canvas.height = TARGET_SIZE;
+          const ctx = canvas.getContext('2d');
+
+          // Recadrage centré (center-crop)
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, TARGET_SIZE, TARGET_SIZE);
+
+          // Exportation en JPEG léger (qualité 70% = ~15 Ko au lieu de plusieurs Mo)
+          tempUploadedImageData = canvas.toDataURL('image/jpeg', 0.7);
+          
+          document.getElementById('photo-preview-img').src = tempUploadedImageData;
+          document.getElementById('photo-preview-container').classList.remove('hidden');
+          document.getElementById('photo-placeholder-ui').classList.add('hidden');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function saveNewProduct(e) {
+      e.preventDefault();
+      playCoinSound();
+
+      const name = document.getElementById('new-prod-name').value.trim();
+      const cat = document.getElementById('new-prod-cat').value;
+      const cost = parseInt(document.getElementById('new-prod-cost').value) || 0;
+      const price = parseInt(document.getElementById('new-prod-price').value) || 0;
+
+      const photoUrl = tempUploadedImageData || 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=400&h=400&q=80';
+
+      const colorMap = {
+        epicerie: 'border-amber-500',
+        boissons: 'border-rose-500',
+        hygiene: 'border-purple-500',
+        frais: 'border-orange-500'
+      };
+
+      const newProd = {
+        id: Date.now().toString(),
+        name,
+        img: photoUrl,
+        cat,
+        cost,
+        price,
+        borderColor: colorMap[cat] || 'border-slate-600'
+      };
+
+      products.push(newProd);
+      saveState();
+      renderProducts();
+      closeModal('modal-add-product');
+      
+      document.getElementById('form-add-product').reset();
+      tempUploadedImageData = null;
+      document.getElementById('photo-preview-container').classList.add('hidden');
+      document.getElementById('photo-placeholder-ui').classList.remove('hidden');
+
+      showToast(`Vignette créée pour "${name}" !`);
+    }
+
+    // --- MODAL UTILS ---
+    function openModal(modalId) {
+      playPopSound();
+      document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+      playDeleteSound();
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    // --- TOAST NOTIFICATIONS ---
+    function showToast(msg) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'bg-slate-800 border border-brand-yellow text-white font-bold text-xs px-3 py-1.5 rounded-full shadow-2xl animate-pop-in flex items-center gap-1.5 text-center';
+      toast.innerHTML = msg;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2200);
+    }
+
+    // --- CONFETTI ANIMATION ---
+    function triggerConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#FFD100', '#FF6B00', '#10B981', '#3B82F6', '#EC4899'];
+
+      for (let i = 0; i < 40; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height - 80,
+          vx: (Math.random() - 0.5) * 12,
+          vy: Math.random() * -14 - 4,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rv: (Math.random() - 0.5) * 10
+        });
+      }
+
+      let frame = 0;
+      function animateConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.4;
+          p.rotation += p.rv;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        });
+
+        frame++;
+        if (frame < 60) {
+          requestAnimationFrame(animateConfetti);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      animateConfetti();
+    }
+  </script>
+</body>
+</html>

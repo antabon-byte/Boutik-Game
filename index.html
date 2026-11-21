@@ -320,17 +320,17 @@
     <!-- Fixed Sticky Category Tabs Bar -->
     <nav class="bg-slate-950/95 border-b border-slate-800/80 px-2 py-1.5 shrink-0 z-20">
         <div class="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto custom-scrollbar text-[11px] font-semibold">
-            <button onclick="filterCategory('all', this)" class="cat-btn active px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition whitespace-nowrap">✨ Tout</button>
-            <button onclick="filterCategory('epices', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🌶️ Épices</button>
-            <button onclick="filterCategory('boissons', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🥤 Boissons</button>
-            <button onclick="filterCategory('biscuits', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🍪 Biscuits & Bonbons</button>
-            <button onclick="filterCategory('hygiene', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🪥 Hygiène</button>
-            <button onclick="filterCategory('menager', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🧹 Produit ménager</button>
-            <button onclick="filterCategory('cereales', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🌾 Céréales</button>
-            <button onclick="filterCategory('boulangerie', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🥖 Boulangerie</button>
-            <button onclick="filterCategory('telephonie', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">📱 Téléphonie</button>
-            <button onclick="filterCategory('frais', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🧀 Produits frais</button>
-            <button onclick="filterCategory('divers', this)" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">📦 Divers</button>
+            <button onclick="filterCategory('all', this)" data-i18n="cat_all" class="cat-btn active px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition whitespace-nowrap">✨ Tout</button>
+            <button onclick="filterCategory('epices', this)" data-i18n="cat_epices" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🌶️ Épices</button>
+            <button onclick="filterCategory('boissons', this)" data-i18n="cat_boissons" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🥤 Boissons</button>
+            <button onclick="filterCategory('biscuits', this)" data-i18n="cat_biscuits" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🍪 Biscuits & Bonbons</button>
+            <button onclick="filterCategory('hygiene', this)" data-i18n="cat_hygiene" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🪥 Hygiène</button>
+            <button onclick="filterCategory('menager', this)" data-i18n="cat_menager" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🧹 Produit ménager</button>
+            <button onclick="filterCategory('cereales', this)" data-i18n="cat_cereales" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🌾 Céréales</button>
+            <button onclick="filterCategory('boulangerie', this)" data-i18n="cat_boulangerie" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🥖 Boulangerie</button>
+            <button onclick="filterCategory('telephonie', this)" data-i18n="cat_telephonie" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">📱 Téléphonie</button>
+            <button onclick="filterCategory('frais', this)" data-i18n="cat_frais" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🧀 Produits frais</button>
+            <button onclick="filterCategory('divers', this)" data-i18n="cat_divers" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">📦 Divers</button>
         </div>
     </nav>
 
@@ -361,7 +361,7 @@
                     </div>
                     <div class="text-left">
                         <span data-i18n="total" class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block leading-none">Total Panier</span>
-                        <span class="text-[9px] text-amber-400/90 font-semibold">Voir le détail</span>
+                        <span data-i18n="viewDetail" class="text-[9px] text-amber-400/90 font-semibold">Voir le détail</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -394,8 +394,8 @@
                         <i class="fa-solid fa-camera-retro text-sm"></i>
                     </div>
                     <div>
-                        <h3 class="text-sm font-black text-white tracking-wide">Nouvel Article</h3>
-                        <p class="text-[10px] text-slate-400">Ajoutez une vignette photo à votre rayon</p>
+                        <h3 data-i18n="newArticleTitle" class="text-sm font-black text-white tracking-wide">Nouvel Article</h3>
+                        <p data-i18n="newArticleSub" class="text-[10px] text-slate-400">Ajoutez une vignette photo à votre rayon</p>
                     </div>
                 </div>
                 <button onclick="closeModal('addProductModal')" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
@@ -413,10 +413,10 @@
                         </div>
                     </div>
                     <div class="flex-1">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 text-[11px] font-extrabold border border-amber-500/30">
+                        <span data-i18n="takePhotoBtn" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 text-[11px] font-extrabold border border-amber-500/30">
                             <i class="fa-solid fa-camera"></i> Prendre / Choisir Photo
                         </span>
-                        <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+                        <p data-i18n="takePhotoDesc" class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
                             Touchez ici pour ouvrir la caméra ou la galerie. Qualité HD optimisée automatiquement.
                         </p>
                     </div>
@@ -426,23 +426,23 @@
                 <!-- Product Name & Category -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Nom de l'article</label>
+                        <label data-i18n="prodNameLabel" class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Nom de l'article</label>
                         <input type="text" id="prodName" placeholder="Ex: Lait Bonnet Rouge" required class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-500">
                     </div>
 
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Rayon / Catégorie</label>
+                        <label data-i18n="prodCatLabel" class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Rayon / Catégorie</label>
                         <select id="prodCategory" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-500">
-                            <option value="epices">🌶️ Épices</option>
-                            <option value="boissons">🥤 Boissons</option>
-                            <option value="biscuits">🍪 Biscuits & Bonbons</option>
-                            <option value="hygiene">🪥 Hygiène</option>
-                            <option value="menager">🧹 Produit ménager</option>
-                            <option value="cereales">🌾 Céréales</option>
-                            <option value="boulangerie">🥖 Boulangerie</option>
-                            <option value="telephonie">📱 Téléphonie</option>
-                            <option value="frais">🧀 Produits frais</option>
-                            <option value="divers">📦 Divers</option>
+                            <option value="epices" data-i18n="cat_epices">🌶️ Épices</option>
+                            <option value="boissons" data-i18n="cat_boissons">🥤 Boissons</option>
+                            <option value="biscuits" data-i18n="cat_biscuits">🍪 Biscuits & Bonbons</option>
+                            <option value="hygiene" data-i18n="cat_hygiene">🪥 Hygiène</option>
+                            <option value="menager" data-i18n="cat_menager">🧹 Produit ménager</option>
+                            <option value="cereales" data-i18n="cat_cereales">🌾 Céréales</option>
+                            <option value="boulangerie" data-i18n="cat_boulangerie">🥖 Boulangerie</option>
+                            <option value="telephonie" data-i18n="cat_telephonie">📱 Téléphonie</option>
+                            <option value="frais" data-i18n="cat_frais">🧀 Produits frais</option>
+                            <option value="divers" data-i18n="cat_divers">📦 Divers</option>
                         </select>
                     </div>
                 </div>
@@ -451,24 +451,24 @@
                 <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-3 space-y-2.5">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Prix d'Achat (F)</label>
+                            <label data-i18n="buyPriceLabel" class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Prix d'Achat (F)</label>
                             <input type="number" id="prodBuyPrice" min="0" placeholder="300" required oninput="updateLiveMarginPreview()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-amber-400 uppercase mb-1">Prix de Vente (F)</label>
+                            <label data-i18n="sellPriceLabel" class="block text-[10px] font-bold text-amber-400 uppercase mb-1">Prix de Vente (F)</label>
                             <input type="number" id="prodSellPrice" min="0" placeholder="450" required oninput="updateLiveMarginPreview()" class="w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3 py-2 text-sm font-black text-amber-400 focus:outline-none focus:border-amber-400">
                         </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-700/60">
-                        <span class="text-slate-400">Bénéfice par vente :</span>
+                        <span data-i18n="marginPerSale" class="text-slate-400">Bénéfice par vente :</span>
                         <span id="liveMarginPreview" class="font-black text-emerald-400">+0 FCFA</span>
                     </div>
                 </div>
 
                 <!-- Action Footer -->
                 <div class="pt-1 grid grid-cols-2 gap-2.5">
-                    <button type="button" onclick="closeModal('addProductModal')" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">Annuler</button>
-                    <button type="submit" class="py-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:opacity-95 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg shadow-amber-500/20 transition">
+                    <button type="button" onclick="closeModal('addProductModal')" data-i18n="cancelBtn" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">Annuler</button>
+                    <button type="submit" data-i18n="addToShelfBtn" class="py-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:opacity-95 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg shadow-amber-500/20 transition">
                         ✨ Ajouter au rayon
                     </button>
                 </div>
@@ -481,7 +481,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-globe text-amber-400"></i> Choisir la Langue
+                    <i class="fa-solid fa-globe text-amber-400"></i> <span data-i18n="chooseLangTitle">Choisir la Langue</span>
                 </h3>
                 <button onclick="closeModal('langModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -533,7 +533,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-book-bookmark text-amber-400"></i> Carnet de Crédit (Dettes Clients)
+                    <i class="fa-solid fa-book-bookmark text-amber-400"></i> <span data-i18n="creditBookTitle">Carnet de Crédit (Dettes Clients)</span>
                 </h3>
                 <button onclick="closeModal('creditModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -548,34 +548,34 @@
         <div class="bg-slate-900 border-2 border-amber-500/70 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h3 class="text-base font-extrabold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-bullseye text-amber-400"></i> Configuration du Cycle & Objectif
+                    <i class="fa-solid fa-bullseye text-amber-400"></i> <span data-i18n="cycleConfigTitle">Configuration du Cycle & Objectif</span>
                 </h3>
                 <button id="btnCloseCycleModal" onclick="closeModal('cycleModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form onsubmit="handleSaveCycleConfig(event)" class="space-y-4">
                 <!-- Étape 1 : Taille des cycles -->
                 <div>
-                    <label class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">1. Durée de votre cycle comptable</label>
+                    <label data-i18n="cycleStep1" class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">1. Durée de votre cycle comptable</label>
                     <div class="grid grid-cols-3 gap-2 text-xs">
-                        <button type="button" id="cycleBtn7" onclick="selectCycleDuration(7)" class="py-2.5 rounded-xl border border-slate-700 bg-slate-800 font-bold text-center transition">7 Jours</button>
-                        <button type="button" id="cycleBtn14" onclick="selectCycleDuration(14)" class="py-2.5 rounded-xl border border-slate-700 bg-slate-800 font-bold text-center transition">14 Jours</button>
-                        <button type="button" id="cycleBtn30" onclick="selectCycleDuration(30)" class="py-2.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-extrabold text-center transition">30 Jours</button>
+                        <button type="button" id="cycleBtn7" onclick="selectCycleDuration(7)" data-i18n="days7" class="py-2.5 rounded-xl border border-slate-700 bg-slate-800 font-bold text-center transition">7 Jours</button>
+                        <button type="button" id="cycleBtn14" onclick="selectCycleDuration(14)" data-i18n="days14" class="py-2.5 rounded-xl border border-slate-700 bg-slate-800 font-bold text-center transition">14 Jours</button>
+                        <button type="button" id="cycleBtn30" onclick="selectCycleDuration(30)" data-i18n="days30" class="py-2.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-extrabold text-center transition">30 Jours</button>
                     </div>
                 </div>
 
                 <!-- Étape 2 : Bénéfice souhaité par jour -->
                 <div>
-                    <label class="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">2. Bénéfice souhaité par jour (FCFA)</label>
+                    <label data-i18n="cycleStep2" class="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">2. Bénéfice souhaité par jour (FCFA)</label>
                     <input type="number" id="dailyProfitGoalInput" value="5000" min="100" required oninput="updateCalculatedCycleGoal()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-base font-black text-white focus:outline-none focus:border-emerald-500">
                     <div class="mt-2 bg-slate-800/80 border border-slate-700 rounded-xl p-2.5 flex items-center justify-between text-xs">
-                        <span class="text-slate-400">Objectif total sur le cycle :</span>
+                        <span data-i18n="totalCycleGoalLabel" class="text-slate-400">Objectif total sur le cycle :</span>
                         <span id="calculatedTotalGoalPreview" class="font-black text-amber-400">150 000 FCFA</span>
                     </div>
                 </div>
 
                 <div class="flex gap-2 pt-2">
-                    <button type="button" id="btnResetCycle" onclick="resetCycle()" class="px-3 py-2.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-400 text-xs font-bold">Remise à 0</button>
-                    <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:opacity-95 text-slate-950 text-xs font-extrabold uppercase tracking-wider shadow-lg">Démarrer le cycle 🚀</button>
+                    <button type="button" id="btnResetCycle" onclick="resetCycle()" data-i18n="resetZeroBtn" class="px-3 py-2.5 rounded-xl bg-red-950/60 border border-red-500/40 text-red-400 text-xs font-bold">Remise à 0</button>
+                    <button type="submit" data-i18n="startCycleBtn" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:opacity-95 text-slate-950 text-xs font-extrabold uppercase tracking-wider shadow-lg">Démarrer le cycle 🚀</button>
                 </div>
             </form>
         </div>
@@ -586,11 +586,11 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-5 space-y-3 shadow-2xl flex flex-col max-h-[88vh]">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
                 <h3 class="text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> Historique (30 derniers jours)
+                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i> <span data-i18n="historyTitle">Historique (30 derniers jours)</span>
                 </h3>
                 <div class="flex items-center gap-2">
                     <button onclick="trackUsage('Export WhatsApp Historique'); exportToWhatsApp()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
-                        <i class="fa-brands fa-whatsapp"></i> Exporter
+                        <i class="fa-brands fa-whatsapp"></i> <span data-i18n="exportBtn">Exporter</span>
                     </button>
                     <button onclick="closeModal('historyModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
@@ -613,11 +613,11 @@
             <!-- Selected Day KPI Summary -->
             <div class="grid grid-cols-2 gap-2 shrink-0">
                 <div class="bg-slate-800/60 p-2 rounded-xl border border-slate-700/70 text-center">
-                    <span class="text-[10px] text-slate-400 font-semibold uppercase block">Ventes du jour</span>
+                    <span data-i18n="daySalesLabel" class="text-[10px] text-slate-400 font-semibold uppercase block">Ventes du jour</span>
                     <span id="historyDayTotal" class="text-sm font-black text-amber-400">0 FCFA</span>
                 </div>
                 <div class="bg-slate-800/60 p-2 rounded-xl border border-slate-700/70 text-center">
-                    <span class="text-[10px] text-slate-400 font-semibold uppercase block">Bénéfice du jour</span>
+                    <span data-i18n="dayProfitLabel" class="text-[10px] text-slate-400 font-semibold uppercase block">Bénéfice du jour</span>
                     <span id="historyDayProfit" class="text-sm font-black text-emerald-400">+0 FCFA</span>
                 </div>
             </div>
@@ -632,15 +632,15 @@
     <div id="creditCustomerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <i class="fa-solid fa-user-plus text-amber-400"></i> Inscrire au Carnet de Crédit
+                <i class="fa-solid fa-user-plus text-amber-400"></i> <span data-i18n="addCreditTitle">Inscrire au Carnet de Crédit</span>
             </h3>
             <div>
-                <label class="block text-xs font-semibold text-slate-300 mb-1">Nom du Client / Surnom</label>
+                <label data-i18n="customerNameLabel" class="block text-xs font-semibold text-slate-300 mb-1">Nom du Client / Surnom</label>
                 <input type="text" id="creditCustomerInput" placeholder="Ex: Mamadou, Tata Awa..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
             </div>
             <div class="flex gap-2">
-                <button onclick="closeModal('creditCustomerModal')" class="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Annuler</button>
-                <button onclick="confirmCreditCheckout()" class="flex-1 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-extrabold">Valider Crédit</button>
+                <button onclick="closeModal('creditCustomerModal')" data-i18n="cancelBtn" class="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Annuler</button>
+                <button onclick="confirmCreditCheckout()" data-i18n="validateCreditBtn" class="flex-1 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-extrabold">Valider Crédit</button>
             </div>
         </div>
     </div>
@@ -648,15 +648,165 @@
     <!-- JAVASCRIPT LOGIC -->
     <script>
         /* --------------------------------------------------
-         * 1. MULTILINGUAL I18N DICTIONARY
+         * 1. MULTILINGUAL I18N DICTIONARY (COMPLETE COVERAGE)
          * -------------------------------------------------- */
         const i18n = {
-            fr: { caCycle: "CA Cycle", benefit: "Bénéfice Est.", total: "Total Panier", payCash: "Encaisser (Comptant)", payCredit: "À Crédit", addProduct: "Ajouter", emptyCart: "Votre panier est vide" },
-            bm: { caCycle: "Wari Caman", benefit: "Tɔnɔ", total: "Sarki Bɛɛ", payCash: "Wari Minɛ", payCredit: "Juru La", addProduct: "Fɛn Kura", emptyCart: "Sarki lala" },
-            mos: { caCycle: "Ligdi Fâa", benefit: "Tɔɔne", total: "Pani Fâa", payCash: "Ligdi Deege", payCredit: "Sàmde", addProduct: "Paase", emptyCart: "Pani pãka" },
-            wo: { caCycle: "Xaalis Bép", benefit: "Njariñ", total: "Sakeu Bi", payCash: "Jap Xaalis", payCredit: "Leb", addProduct: "Yokk", emptyCart: "Sakeu bi dara nekkul" },
-            ff: { caCycle: "Kaalis Fuu", benefit: "Ribu", total: "Siluu Fuu", payCash: "Heɓta Kaalis", payCredit: "Nyamaande", addProduct: "Ɓeydu", emptyCart: "Siluu ina mehi" },
-            ar: { caCycle: "مبيعات الدورة", benefit: "الربح", total: "مجموع السلة", payCash: "قبض نقداً", payCredit: "بالدين", addProduct: "إضافة", emptyCart: "السلة فارغة" }
+            fr: {
+                caCycle: "CA Cycle", benefit: "Bénéfice Est.", total: "Total Panier", viewDetail: "Voir le détail",
+                payCash: "Encaisser", payCredit: "Crédit", addProduct: "Ajouter", addPhotoSub: "+ Photo",
+                emptyCart: "Votre panier est vide", cycleLabel: "Cycle", dayLabel: "Jour",
+                cat_all: "✨ Tout", cat_epices: "🌶️ Épices", cat_boissons: "🥤 Boissons",
+                cat_biscuits: "🍪 Biscuits & Bonbons", cat_hygiene: "🪥 Hygiène", cat_menager: "🧹 Produit ménager",
+                cat_cereales: "🌾 Céréales", cat_boulangerie: "🥖 Boulangerie", cat_telephonie: "📱 Téléphonie",
+                cat_frais: "🧀 Produits frais", cat_divers: "📦 Divers",
+                newArticleTitle: "Nouvel Article", newArticleSub: "Ajoutez une vignette photo à votre rayon",
+                takePhotoBtn: "📸 Prendre / Choisir Photo", takePhotoDesc: "Touchez ici pour ouvrir la caméra ou la galerie.",
+                prodNameLabel: "Nom de l'article", prodCatLabel: "Rayon / Catégorie",
+                buyPriceLabel: "Prix d'Achat (F)", sellPriceLabel: "Prix de Vente (F)",
+                marginPerSale: "Bénéfice par vente :", cancelBtn: "Annuler", addToShelfBtn: "✨ Ajouter au rayon",
+                chooseLangTitle: "Choisir la Langue", creditBookTitle: "Carnet de Crédit (Dettes Clients)",
+                noCreditsMsg: "Aucune dette en cours 👍", paidBtn: "✓ Payé",
+                cycleConfigTitle: "Configuration du Cycle & Objectif", cycleStep1: "1. Durée de votre cycle comptable",
+                days7: "7 Jours", days14: "14 Jours", days30: "30 Jours",
+                cycleStep2: "2. Bénéfice souhaité par jour (FCFA)", totalCycleGoalLabel: "Objectif total sur le cycle :",
+                resetZeroBtn: "Remise à 0", startCycleBtn: "Démarrer le cycle 🚀",
+                historyTitle: "Historique (30 derniers jours)", exportBtn: "Exporter",
+                today: "Aujourd'hui", yesterday: "Hier", daysAgoPrefix: "Il y a ", daysAgoSuffix: " jours",
+                daySalesLabel: "Ventes du jour", dayProfitLabel: "Bénéfice du jour",
+                noSalesDayMsg: "Aucune vente enregistrée pour cette journée.", profitTag: "bénéfice",
+                addCreditTitle: "Inscrire au Carnet de Crédit", customerNameLabel: "Nom du Client / Surnom",
+                validateCreditBtn: "Valider Crédit", typeCash: "Comptant", typeCredit: "Crédit"
+            },
+            bm: {
+                caCycle: "Wari Caman", benefit: "Tɔnɔ", total: "Sarki Bɛɛ", viewDetail: "A kɔnɔna filɛ",
+                payCash: "Wari Minɛ", payCredit: "Juru La", addProduct: "Fɛn Kura", addPhotoSub: "+ Ja",
+                emptyCart: "Sarki lala", cycleLabel: "Waati", dayLabel: "Tile",
+                cat_all: "✨ Bɛɛ", cat_epices: "🌶️ Namakɔrɔ", cat_boissons: "🥤 Minfɛn",
+                cat_biscuits: "🍪 Bisiki & Bonbon", cat_hygiene: "🪥 Saniya", cat_menager: "🧹 So kɔnɔ fɛn",
+                cat_cereales: "🌾 Sumaw", cat_boulangerie: "🥖 Buru", cat_telephonie: "📱 Telefɔni",
+                cat_frais: "🧀 Fɛn kɛnɛ", cat_divers: "📦 Fɛn wɛrɛw",
+                newArticleTitle: "Fɛn Kura", newArticleSub: "Ja dɔ fara i ka fɛnw kan",
+                takePhotoBtn: "📸 Ja Ta / Sugandi", takePhotoDesc: "Digi yan ka ja ta ni kamera ye.",
+                prodNameLabel: "Fɛn tɔgɔ", prodCatLabel: "Fɛn suguya",
+                buyPriceLabel: "Sannikɛ sɔngɔ (F)", sellPriceLabel: "Feerekɛ sɔngɔ (F)",
+                marginPerSale: "Tɔnɔ kelen-kelen :", cancelBtn: "A bila", addToShelfBtn: "✨ A fara a kan",
+                chooseLangTitle: "Kan Sugandi", creditBookTitle: "Juru Gafe (Mogow ka juru)",
+                noCreditsMsg: "Juru si tɛ yen 👍", paidBtn: "✓ A sara",
+                cycleConfigTitle: "Waati ni Tɔnɔ Labɛn", cycleStep1: "1. I ka jate waati hakɛ",
+                days7: "Tile 7", days14: "Tile 14", days30: "Tile 30",
+                cycleStep2: "2. Tile kelen tɔnɔ kun (FCFA)", totalCycleGoalLabel: "Waati bɛɛ tɔnɔ kun :",
+                resetZeroBtn: "Lase 0 ma", startCycleBtn: "Baara daminɛ 🚀",
+                historyTitle: "Tariku (Tile 30 tɛmɛnen)", exportBtn: "A ci",
+                today: "Bi", yesterday: "Kunu", daysAgoPrefix: "A bɛ tile ", daysAgoSuffix: " bɔ",
+                daySalesLabel: "Bi feere", dayProfitLabel: "Bi tɔnɔ",
+                noSalesDayMsg: "Feere si ma kɛ nin tile la.", profitTag: "tɔnɔ",
+                addCreditTitle: "Juru Sɛbɛn Gafe La", customerNameLabel: "Sannikɛla tɔgɔ",
+                validateCreditBtn: "Juru Sɛbɛn", typeCash: "Wari jɛlen", typeCredit: "Juru"
+            },
+            mos: {
+                caCycle: "Ligdi Fâa", benefit: "Tɔɔne", total: "Pani Fâa", viewDetail: "Gese fâa",
+                payCash: "Ligdi Deege", payCredit: "Sàmde", addProduct: "Paase", addPhotoSub: "+ Foto",
+                emptyCart: "Pani pãka", cycleLabel: "Wakato", dayLabel: "Daar",
+                cat_all: "✨ Fâa", cat_epices: "🌶️ Zẽedo", cat_boissons: "🥤 Yũumdo",
+                cat_biscuits: "🍪 Bisiki", cat_hygiene: "🪥 Yɩɩlem", cat_menager: "🧹 Zak teedo",
+                cat_cereales: "🌾 Koodo", cat_boulangerie: "🥖 Buru", cat_telephonie: "📱 Telefɔn",
+                cat_frais: "🧀 Teed maasga", cat_divers: "📦 Teed a taaba",
+                newArticleTitle: "Teed Paalga", newArticleSub: "Paas-y foto y teedo sʋka",
+                takePhotoBtn: "📸 Yik Foto", takePhotoDesc: "Sɩɩg-y ka n yik foto ne kamera.",
+                prodNameLabel: "Teedo yʋʋre", prodCatLabel: "Teedo buudu",
+                buyPriceLabel: "Daabo ligdi (F)", sellPriceLabel: "Koosgo ligdi (F)",
+                marginPerSale: "Tɔɔne a ye :", cancelBtn: "Bas-y", addToShelfBtn: "✨ Paas-y",
+                chooseLangTitle: "Yãk-y Goama", creditBookTitle: "Sàm-gõore (Neba sàmde)",
+                noCreditsMsg: "Sàmde ka be ye 👍", paidBtn: "✓ Yaoodame",
+                cycleConfigTitle: "Wakato la Tɔɔne Manegre", cycleStep1: "1. Y jate wakato rasem",
+                days7: "Rasem 7", days14: "Rasem 14", days30: "Rasem 30",
+                cycleStep2: "2. Daar fâa tɔɔne (FCFA)", totalCycleGoalLabel: "Wakato fâa tɔɔne :",
+                resetZeroBtn: "Lebs 0", startCycleBtn: "Sɩng baara 🚀",
+                historyTitle: "Kibay (Rasem 30)", exportBtn: "Tʋm",
+                today: "Rũndã", yesterday: "Zaame", daysAgoPrefix: "Rasem ", daysAgoSuffix: " la woto",
+                daySalesLabel: "Rũndã koosgo", dayProfitLabel: "Rũndã tɔɔne",
+                noSalesDayMsg: "Koosgo ka zĩnd daar kãnga ye.", profitTag: "tɔɔne",
+                addCreditTitle: "Gʋls Sàm-gõorẽ", customerNameLabel: "Neda yʋʋre",
+                validateCreditBtn: "Sègle Sàmde", typeCash: "Ligdi", typeCredit: "Sàmde"
+            },
+            wo: {
+                caCycle: "Xaalis Bép", benefit: "Njariñ", total: "Sakeu Bi", viewDetail: "Xool li ci biir",
+                payCash: "Jap Xaalis", payCredit: "Leb", addProduct: "Yokk", addPhotoSub: "+ Nataal",
+                emptyCart: "Sakeu bi dara nekkul", cycleLabel: "Jamono", dayLabel: "Bes",
+                cat_all: "✨ Yépp", cat_epices: "🌶️ Saf-safal", cat_boissons: "🥤 Naan",
+                cat_biscuits: "🍪 Biskwit & Bonbon", cat_hygiene: "🪥 Setal", cat_menager: "🧹 Liggéeyu kër",
+                cat_cereales: "🌾 Dugub ak Ceeb", cat_boulangerie: "🥖 Mburu", cat_telephonie: "📱 Telefon",
+                cat_frais: "🧀 Luy yees", cat_divers: "📦 Yeneen",
+                newArticleTitle: "Bagas Bu Yees", newArticleSub: "Yokkal nataal ci sa bitik",
+                takePhotoBtn: "📸 Jël Nataal", takePhotoDesc: "Bësal fii ngir jël nataal.",
+                prodNameLabel: "Turu bagas bi", prodCatLabel: "Xeetu bagas",
+                buyPriceLabel: "Njëgu jënd (F)", sellPriceLabel: "Njëgu jaay (F)",
+                marginPerSale: "Njariñ ci benn :", cancelBtn: "Bàyyi", addToShelfBtn: "✨ Yokk ci bitik",
+                chooseLangTitle: "Tànn Làkk", creditBookTitle: "Kaye Bor (Boru nit ñi)",
+                noCreditsMsg: "Amul benn bor 👍", paidBtn: "✓ Fay na",
+                cycleConfigTitle: "Njaay ak Njariñ", cycleStep1: "1. Fan yi sa kumpa di dox",
+                days7: "Fan 7", days14: "Fan 14", days30: "Fan 30",
+                cycleStep2: "2. Njariñ li nga bëgg bes bu nekk (FCFA)", totalCycleGoalLabel: "Njariñ lépp ci jamono ji :",
+                resetZeroBtn: "Dellu 0", startCycleBtn: "Tambali 🚀",
+                historyTitle: "Jaara-jaara (30 fan)", exportBtn: "Yónnee",
+                today: "Tey", yesterday: "Demb", daysAgoPrefix: "Am na ", daysAgoSuffix: " fan",
+                daySalesLabel: "Jaayante tey", dayProfitLabel: "Njariñu tey",
+                noSalesDayMsg: "Amul benn jaayante bes bii.", profitTag: "njariñ",
+                addCreditTitle: "Bind ci Kaye Bor", customerNameLabel: "Turu nit ki",
+                validateCreditBtn: "Dëggal Bor", typeCash: "Xaalis", typeCredit: "Leb"
+            },
+            ff: {
+                caCycle: "Kaalis Fuu", benefit: "Ribu", total: "Siluu Fuu", viewDetail: "Ƴeew ko woni heen",
+                payCash: "Heɓta Kaalis", payCredit: "Nyamaande", addProduct: "Ɓeydu", addPhotoSub: "+ Foto",
+                emptyCart: "Siluu ina mehi", cycleLabel: "Sahaa", dayLabel: "Ñalnde",
+                cat_all: "✨ Fuu", cat_epices: "🌶️ Maafe", cat_boissons: "🥤 Njardam",
+                cat_biscuits: "🍪 Biskuwit", cat_hygiene: "🪥 Laabal", cat_menager: "🧹 Kuutorɗe galle",
+                cat_cereales: "🌾 Gawri e Maaro", cat_boulangerie: "🥖 Mburu", cat_telephonie: "📱 Telefoŋ",
+                cat_frais: "🧀 Kesum", cat_divers: "📦 Goɗɗi",
+                newArticleTitle: "Huunde Hesre", newArticleSub: "Ɓeydu foto e bitik maa",
+                takePhotoBtn: "📸 Ɓam Foto", takePhotoDesc: "Mem ɗoo ngam ɓamde foto.",
+                prodNameLabel: "Innde huunde", prodCatLabel: "Sifaa huunde",
+                buyPriceLabel: "Coodgu soode (F)", sellPriceLabel: "Coodgu yeeyde (F)",
+                marginPerSale: "Ribu e gootel :", cancelBtn: "Haantukil", addToShelfBtn: "✨ Ɓeydu e bitik",
+                chooseLangTitle: "Subo Ɗemngal", creditBookTitle: "Deftere Nyamaande",
+                noCreditsMsg: "Hay nyamaande alaa 👍", paidBtn: "✓ Yoɓama",
+                cycleConfigTitle: "Teelte Sahaa & Ribu", cycleStep1: "1. Balɗe limogal maa",
+                days7: "Balɗe 7", days14: "Balɗe 14", days30: "Balɗe 30",
+                cycleStep2: "2. Ribu njiɗ-ɗaa ñalnde kala (FCFA)", totalCycleGoalLabel: "Ribu sahaa oo fuu :",
+                resetZeroBtn: "Artir 0", startCycleBtn: "Fuɗɗo 🚀",
+                historyTitle: "Taariha (Balɗe 30)", exportBtn: "Neldu",
+                today: "Hande", yesterday: "Haŋki", daysAgoPrefix: "Waɗii balɗe ", daysAgoSuffix: "",
+                daySalesLabel: "Yeeyde hande", dayProfitLabel: "Ribu hande",
+                noSalesDayMsg: "Hay huunde yeeyaaka ndee ñalnde.", profitTag: "ribu",
+                addCreditTitle: "Winndu e Deftere Nyamaande", customerNameLabel: "Innde soodoowo",
+                validateCreditBtn: "Tabintin", typeCash: "Kaalis", typeCredit: "Nyamaande"
+            },
+            ar: {
+                caCycle: "مبيعات الدورة", benefit: "الربح المتوقع", total: "مجموع السلة", viewDetail: "عرض التفاصيل",
+                payCash: "قبض نقداً", payCredit: "بالدين", addProduct: "إضافة", addPhotoSub: "+ صورة",
+                emptyCart: "السلة فارغة", cycleLabel: "الدورة", dayLabel: "اليوم",
+                cat_all: "✨ الكل", cat_epices: "🌶️ التوابل", cat_boissons: "🥤 المشروبات",
+                cat_biscuits: "🍪 بسكويت وحلويات", cat_hygiene: "🪥 النظافة", cat_menager: "🧹 مواد التنظيف",
+                cat_cereales: "🌾 الحبوب", cat_boulangerie: "🥖 المخبوزات", cat_telephonie: "📱 الهواتف",
+                cat_frais: "🧀 منتجات طازجة", cat_divers: "📦 متنوعات",
+                newArticleTitle: "منتج جديد", newArticleSub: "أضف صورة المنتج إلى متجرك",
+                takePhotoBtn: "📸 التقاط / اختيار صورة", takePhotoDesc: "اضغط هنا لفتح الكاميرا أو المعرض.",
+                prodNameLabel: "اسم المنتج", prodCatLabel: "القسم / الفئة",
+                buyPriceLabel: "سعر الشراء (F)", sellPriceLabel: "سعر البيع (F)",
+                marginPerSale: "الربح لكل قطعة :", cancelBtn: "إلغاء", addToShelfBtn: "✨ إضافة للمتجر",
+                chooseLangTitle: "اختيار اللغة", creditBookTitle: "دفتر الديون (ديون الزبائن)",
+                noCreditsMsg: "لا توجد ديون مسجلة 👍", paidBtn: "✓ تم الدفع",
+                cycleConfigTitle: "إعدادات الدورة والهدف", cycleStep1: "1. مدة الدورة المحاسبية",
+                days7: "7 أيام", days14: "14 يوماً", days30: "30 يوماً",
+                cycleStep2: "2. الربح اليومي المستهدف (FCFA)", totalCycleGoalLabel: "الهدف الإجمالي للدورة :",
+                resetZeroBtn: "تصفير", startCycleBtn: "بدء الدورة 🚀",
+                historyTitle: "السجل (آخر 30 يوماً)", exportBtn: "تصدير",
+                today: "اليوم", yesterday: "أمس", daysAgoPrefix: "منذ ", daysAgoSuffix: " أيام",
+                daySalesLabel: "مبيعات اليوم", dayProfitLabel: "ربح اليوم",
+                noSalesDayMsg: "لا توجد مبيعات مسجلة لهذا اليوم.", profitTag: "ربح",
+                addCreditTitle: "تسجيل في دفتر الديون", customerNameLabel: "اسم الزبون",
+                validateCreditBtn: "تأكيد الدين", typeCash: "نقداً", typeCredit: "بالدين"
+            }
         };
         let currentLang = localStorage.getItem('boutik_lang') || 'fr';
 
@@ -674,6 +824,9 @@
             closeModal('langModal');
             if (typeof renderProducts === 'function') renderProducts();
             if (typeof renderCart === 'function') renderCart(false);
+            if (typeof renderCredits === 'function') renderCredits();
+            if (typeof renderHistory === 'function') renderHistory();
+            if (typeof updateKPIs === 'function') updateKPIs(false);
         }
 
         /* --------------------------------------------------
@@ -1418,7 +1571,7 @@
                         <i class="fa-solid fa-camera text-xs sm:text-base"></i>
                     </div>
                     <span data-i18n="addProduct" class="text-[11px] sm:text-xs font-extrabold leading-tight">${i18n[currentLang].addProduct}</span>
-                    <span class="text-[8px] sm:text-[9px] text-slate-400">+ Photo</span>
+                    <span class="text-[8px] sm:text-[9px] text-slate-400">${i18n[currentLang].addPhotoSub}</span>
                 </div>
             `;
 
@@ -1666,8 +1819,9 @@
                 else badge.classList.add('hidden');
             }
             if (!list) return;
+            const dict = i18n[currentLang] || i18n.fr;
             if (state.credits.length === 0) {
-                list.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">Aucune dette en cours 👍</p>`;
+                list.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">${dict.noCreditsMsg}</p>`;
                 return;
             }
             list.innerHTML = state.credits.map(c => `
@@ -1678,7 +1832,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="font-black text-white">${c.amount.toLocaleString()} FCFA</span>
-                        <button onclick="settleCredit('${c.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]">✓ Payé</button>
+                        <button onclick="settleCredit('${c.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]">${dict.paidBtn}</button>
                     </div>
                 </div>
             `).join('');
@@ -1720,11 +1874,11 @@
             targetDate.setDate(targetDate.getDate() + state.historyDayOffset);
             const targetISO = targetDate.toISOString().split('T')[0];
             const formattedDate = targetDate.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
-
+            const dict = i18n[currentLang] || i18n.fr;
             if (titleEl) {
-                if (state.historyDayOffset === 0) titleEl.innerText = "Aujourd'hui";
-                else if (state.historyDayOffset === -1) titleEl.innerText = "Hier";
-                else titleEl.innerText = `Il y a ${Math.abs(state.historyDayOffset)} jours`;
+                if (state.historyDayOffset === 0) titleEl.innerText = dict.today;
+                else if (state.historyDayOffset === -1) titleEl.innerText = dict.yesterday;
+                else titleEl.innerText = `${dict.daysAgoPrefix}${Math.abs(state.historyDayOffset)}${dict.daysAgoSuffix}`;
             }
             if (subEl) subEl.innerText = formattedDate;
             if (btnPrev) btnPrev.disabled = state.historyDayOffset <= -30;
@@ -1743,7 +1897,7 @@
             if (dayProfitEl) dayProfitEl.innerText = `+${dayProfit.toLocaleString()} FCFA`;
 
             if (dayTransactions.length === 0) {
-                list.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">Aucune vente enregistrée pour cette journée.</p>`;
+                list.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">${dict.noSalesDayMsg}</p>`;
                 return;
             }
 
@@ -1751,13 +1905,13 @@
                 <div class="bg-slate-800 border border-slate-700/60 rounded-xl p-3 space-y-1">
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-slate-200">${t.date}</span>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.type === 'Crédit' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}">${t.type} ${t.customer ? `(${t.customer})` : ''}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.type === 'Crédit' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}">${t.type === 'Crédit' ? dict.typeCredit : dict.typeCash} ${t.customer ? `(${t.customer})` : ''}</span>
                     </div>
                     <div class="text-[11px] text-slate-400">
                         ${t.items.map(i => `${i.name} (x${i.qty})`).join(', ')}
                     </div>
                     <div class="flex justify-between items-center pt-1 border-t border-slate-700/50">
-                        <span class="text-emerald-400 font-bold">+${t.profit.toLocaleString()} F bénéfice</span>
+                        <span class="text-emerald-400 font-bold">+${t.profit.toLocaleString()} F ${dict.profitTag}</span>
                         <span class="font-black text-amber-400">${t.total.toLocaleString()} FCFA</span>
                     </div>
                 </div>
@@ -1802,8 +1956,12 @@
                 const pct = state.cycleGoal > 0 ? Math.min(100, Math.round((totalProfit / state.cycleGoal) * 100)) : 0;
                 progressBar.style.width = `${pct}%`;
             }
+            const dict = i18n[currentLang] || i18n.fr;
             if (progressLabel) {
-                progressLabel.innerText = `Cycle : ${totalProfit.toLocaleString()} / ${state.cycleGoal.toLocaleString()} F`;
+                progressLabel.innerText = `${dict.cycleLabel} : ${totalProfit.toLocaleString()} / ${state.cycleGoal.toLocaleString()} F`;
+            }
+            if (dailyMiniStatus) {
+                dailyMiniStatus.innerText = `${dict.dayLabel} : ${todayProfit.toLocaleString()} / ${state.dailyProfitGoal.toLocaleString()} F`;
             }
             if (dailyMiniStatus) {
                 dailyMiniStatus.innerText = `Jour : ${todayProfit.toLocaleString()} / ${state.dailyProfitGoal.toLocaleString()} F`;

@@ -14,21 +14,27 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            gold: '#F59E0B',
-                            amber: '#D97706',
-                            emerald: '#10B981',
-                            dark: '#0F172A',
-                            card: '#1E293B'
+        function applyTailwindConfig() {
+            if (typeof window.tailwind !== 'undefined') {
+                window.tailwind.config = {
+                    theme: {
+                        extend: {
+                            colors: {
+                                brand: {
+                                    gold: '#F59E0B',
+                                    amber: '#D97706',
+                                    emerald: '#10B981',
+                                    dark: '#0F172A',
+                                    card: '#1E293B'
+                                }
+                            }
                         }
                     }
-                }
+                };
             }
         }
+        applyTailwindConfig();
+        window.addEventListener('DOMContentLoaded', applyTailwindConfig);
     </script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -108,6 +114,13 @@
         .animate-flame {
             animation: flameBounce 1s infinite ease-in-out;
         }
+        /* Marges de sécurité pour l'installation sur l'écran d'accueil (encoche / barre d'état) */
+        .safe-header {
+            padding-top: calc(0.45rem + env(safe-area-inset-top, 0px));
+        }
+        .safe-footer {
+            padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
+        }
     </style>
 </head>
 <body class="h-[100dvh] w-full flex flex-col overflow-hidden bg-slate-950 text-slate-100">
@@ -155,8 +168,8 @@
         </div>
     </div>
 
-    <!-- Header Section (Compact Mobile Ergonomics) -->
-    <header class="bg-slate-900/95 border-b border-slate-800 px-2.5 py-1.5 shrink-0 z-30">
+    <!-- Header Section (Compact Mobile Ergonomics + Safe Area) -->
+    <header class="safe-header bg-slate-900/95 border-b border-slate-800 px-2.5 pb-1.5 shrink-0 z-30">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-1.5">
             
             <!-- Custom Imported Icon SVG + Title + Level Badge -->
@@ -332,7 +345,7 @@
     </main>
 
     <!-- Anchored Fixed Bottom Cart Bar & Thumb Action Panel -->
-    <footer class="fixed bottom-0 inset-x-0 bg-slate-900/98 backdrop-blur-md border-t-2 border-slate-800 px-2.5 pt-2 pb-2.5 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.75)]">
+    <footer class="safe-footer fixed bottom-0 inset-x-0 bg-slate-900/98 backdrop-blur-md border-t-2 border-slate-800 px-2.5 pt-2 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.75)]">
         <div class="max-w-7xl mx-auto space-y-2">
             <!-- Expandable Cart Items List -->
             <div id="cartDrawerContent" class="hidden max-h-44 overflow-y-auto custom-scrollbar divide-y divide-slate-800 border-b border-slate-800 pb-1.5">

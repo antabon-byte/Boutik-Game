@@ -8,6 +8,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Boutik'Game - Caisse Visuelle Gamifiée</title>
     <link id="appFavicon" rel="icon" type="image/svg+xml" href="">
     <link id="appleTouchIcon" rel="apple-touch-icon" href="">
@@ -306,13 +309,13 @@
         </div>
         
         <!-- Slim Cycle Progress Bar -->
+        <!-- Slim Daily Progress Bar -->
         <div class="max-w-7xl mx-auto mt-1">
             <div class="flex items-center justify-between text-[8px] font-bold mb-0.5">
-                <span id="goalProgressLabel" class="text-emerald-400 truncate">Cycle : 0 / 150 000 F</span>
-                <span id="dailyGoalMiniStatus" class="text-amber-400 shrink-0 ml-2">Jour : 0 / 5 000 F</span>
+                <span id="dailyGoalMiniStatus" class="text-amber-400 truncate">Jour : 0 / 5 000 F (0%)</span>
             </div>
-            <div class="w-full bg-slate-800 rounded-full h-1 overflow-hidden">
-                <div id="cycleProgressBar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full w-0 transition-all duration-500"></div>
+            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div id="dailyProgressBar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full w-0 transition-all duration-500"></div>
             </div>
         </div>
     </section>
@@ -647,6 +650,182 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
+        const APP_VERSION = '2.4.0';
+
+        /* --------------------------------------------------
+         * 0. CONTINUOUS ONLINE UPDATE, LOCAL DATE & STORAGE SAFETY
+         * -------------------------------------------------- */
+        function safeJSONParse(key, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw === null) return fallback;
+                const parsed = JSON.parse(raw);
+                return parsed !== null && parsed !== undefined ? parsed : fallback;
+            } catch (e) {
+                console.warn('Données JSON corrompues récupérées pour ' + key, e);
+                return fallback;
+            }
+        }
+
+        function safeStorageSet(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e) {
+                console.warn('Erreur sauvegarde localStorage pour ' + key, e);
+                return false;
+            }
+        }
+
+        function formatLocalDateISO(dateObj = new Date()) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getTodayISO() {
+            return formatLocalDateISO(new Date());
+        }
+
+        /* --------------------------------------------------
+         * INDEXEDDB PHOTO VAULT (OFFLINE UNLIMITED STORAGE)
+         * -------------------------------------------------- */
+        const ImageVault = {
+            dbName: 'BoutikGameDB',
+            storeName: 'product_images',
+            dbPromise: null,
+            open() {
+                if (this.dbPromise) return this.dbPromise;
+                this.dbPromise = new Promise((resolve) => {
+                    if (!('indexedDB' in window)) return resolve(null);
+                    try {
+                        const req = indexedDB.open(this.dbName, 1);
+                        req.onupgradeneeded = (e) => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains(this.storeName)) {
+                                db.createObjectStore(this.storeName);
+                            }
+                        };
+                        req.onsuccess = (e) => resolve(e.target.result);
+                        req.onerror = () => resolve(null);
+                    } catch (e) {
+                        resolve(null);
+                    }
+                });
+                return this.dbPromise;
+            },
+            async saveImage(id, dataUrl) {
+                const db = await this.open();
+                if (!db || !dataUrl) return false;
+                return new Promise((resolve) => {
+                    try {
+                        const tx = db.transaction(this.storeName, 'readwrite');
+                        tx.objectStore(this.storeName).put(dataUrl, String(id));
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                    } catch (e) {
+                        resolve(false);
+                    }
+                });
+            },
+            async getImage(id) {
+                const db = await this.open();
+                if (!db) return null;
+                return new Promise((resolve) => {
+                    try {
+                        const tx = db.transaction(this.storeName, 'readonly');
+                        const req = tx.objectStore(this.storeName).get(String(id));
+                        req.onsuccess = () => resolve(req.result || null);
+                        req.onerror = () => resolve(null);
+                    } catch (e) {
+                        resolve(null);
+                    }
+                });
+            },
+            async deleteImage(id) {
+                const db = await this.open();
+                if (!db) return;
+                try {
+                    const tx = db.transaction(this.storeName, 'readwrite');
+                    tx.objectStore(this.storeName).delete(String(id));
+                } catch (e) {}
+            }
+        };
+
+        function saveProductsSafely() {
+            const fullSerialized = JSON.stringify(state.products);
+            if (!safeStorageSet('boutik_products', fullSerialized)) {
+                // Si localStorage atteint 5 Mo, décharger les images base64 vers IndexedDB
+                const lightProducts = state.products.map(p => {
+                    if (p.image && p.image.startsWith('data:image')) {
+                        ImageVault.saveImage(p.id, p.image);
+                        return { ...p, image: 'idb:' + p.id };
+                    }
+                    return p;
+                });
+                safeStorageSet('boutik_products', JSON.stringify(lightProducts));
+            }
+        }
+
+        function saveTransactionsSafely() {
+            const serialized = JSON.stringify(state.transactions);
+            if (!safeStorageSet('boutik_tx', serialized)) {
+                // En cas de dépassement de quota (QuotaExceededError), conserver les 200 plus récentes
+                state.transactions = state.transactions.slice(0, 200);
+                safeStorageSet('boutik_tx', JSON.stringify(state.transactions));
+            }
+        }
+
+        function preserveAllStateBeforeReload() {
+            try {
+                if (typeof state !== 'undefined') {
+                    saveProductsSafely();
+                    saveTransactionsSafely();
+                    safeStorageSet('boutik_credits', JSON.stringify(state.credits));
+                    safeStorageSet('boutik_shop_level', String(state.shopLevel));
+                    safeStorageSet('boutik_cycle_days', String(state.cycleDays));
+                    safeStorageSet('boutik_daily_profit_goal', String(state.dailyProfitGoal));
+                    safeStorageSet('boutik_cycle_configured', String(state.isConfigured));
+                    safeStorageSet('boutik_daily_streak', String(state.dailyStreak));
+                    safeStorageSet('boutik_daily_goal_date', String(state.dailyGoalCelebratedDate));
+                    safeStorageSet('boutik_goal_celebrated', String(state.goalCelebrated));
+                }
+            } catch (e) {}
+        }
+
+        async function checkRemoteUpdate() {
+            if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+            try {
+                const url = window.location.origin + window.location.pathname + '?t=' + Date.now();
+                const response = await fetch(url, { cache: 'no-store' });
+                if (!response.ok) return;
+                const htmlText = await response.text();
+                const match = htmlText.match(/const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+                if (match && match[1] && match[1] !== APP_VERSION) {
+                    const remoteVersion = match[1];
+                    // Anti-boucle : ne pas recharger plusieurs fois pour la même version dans la session
+                    try {
+                        if (sessionStorage.getItem('boutik_attempted_version') === remoteVersion) {
+                            return;
+                        }
+                        sessionStorage.setItem('boutik_attempted_version', remoteVersion);
+                    } catch (e) {}
+
+                    preserveAllStateBeforeReload();
+                    if ('caches' in window) {
+                        try {
+                            const keys = await caches.keys();
+                            await Promise.all(keys.map(k => caches.delete(k)));
+                        } catch (e) {}
+                    }
+                    window.location.replace(window.location.origin + window.location.pathname + '?v=' + encodeURIComponent(remoteVersion));
+                }
+            } catch (e) {
+                // Mode hors-ligne ou erreur réseau ignorée silencieusement
+            }
+        }
+
         /* --------------------------------------------------
          * 1. MULTILINGUAL I18N DICTIONARY (COMPLETE COVERAGE)
          * -------------------------------------------------- */
@@ -795,7 +974,7 @@
                 buyPriceLabel: "سعر الشراء (F)", sellPriceLabel: "سعر البيع (F)",
                 marginPerSale: "الربح لكل قطعة :", cancelBtn: "إلغاء", addToShelfBtn: "✨ إضافة للمتجر",
                 chooseLangTitle: "اختيار اللغة", creditBookTitle: "دفتر الديون (ديون الزبائن)",
-                noCreditsMsg: "لا توجد ديون مسجلة 👍", paidBtn: "✓ تم الدفع",
+                noCreditsMsg: "لا توجد ديون مسجلة 👍", paidBtn: "تم الدفع ✓",
                 cycleConfigTitle: "إعدادات الدورة والهدف", cycleStep1: "1. مدة الدورة المحاسبية",
                 days7: "7 أيام", days14: "14 يوماً", days30: "30 يوماً",
                 cycleStep2: "2. الربح اليومي المستهدف (FCFA)", totalCycleGoalLabel: "الهدف الإجمالي للدورة :",
@@ -813,7 +992,7 @@
         function setLanguage(lang) {
             if (!i18n[lang]) return;
             currentLang = lang;
-            localStorage.setItem('boutik_lang', lang);
+            safeStorageSet('boutik_lang', lang);
             document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
             const badge = document.getElementById('currentLangBadge');
             if (badge) badge.innerText = lang.toUpperCase();
@@ -832,19 +1011,15 @@
         /* --------------------------------------------------
          * ANALYTICS & TELEMETRY TRACKING (SCREEN TIME, FREQUENCY, OPTIONS)
          * -------------------------------------------------- */
-        let analytics = JSON.parse(localStorage.getItem('boutik_analytics')) || {
+        let analytics = safeJSONParse('boutik_analytics', {
             totalScreenSeconds: 0,
             dailySessions: {},
             dailyScreenSeconds: {},
             featureClicks: {}
-        };
-
-        function getTodayISO() {
-            return new Date().toISOString().split('T')[0];
-        }
+        });
 
         function saveAnalytics() {
-            localStorage.setItem('boutik_analytics', JSON.stringify(analytics));
+            safeStorageSet('boutik_analytics', JSON.stringify(analytics));
         }
 
         function registerDailyVisit() {
@@ -869,14 +1044,6 @@
                 }
             }
         }, 1000);
-
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                registerDailyVisit();
-            } else {
-                saveAnalytics();
-            }
-        });
 
         function formatDuration(totalSeconds) {
             const hrs = Math.floor(totalSeconds / 3600);
@@ -997,230 +1164,242 @@
             }
 
             init() {
-                if (!this.ctx) {
-                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    if (AudioCtx) this.ctx = new AudioCtx();
-                }
-                if (this.ctx && this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-                if (this.enabled && !this.bgmInterval && !document.hidden) {
-                    this.startBackgroundMusic();
-                }
+                try {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume().catch(() => {});
+                    }
+                    if (this.enabled && !this.bgmInterval && !document.hidden) {
+                        this.startBackgroundMusic();
+                    }
+                } catch (e) {}
             }
 
             startBackgroundMusic() {
-                if (this.bgmInterval || !this.enabled) return;
-                // Mélodie libre de droits douce et chaleureuse (gamme pentatonique majeure)
-                const melody = [
-                    261.63, 329.63, 392.00, 523.25,
-                    440.00, 392.00, 329.63, 293.66,
-                    261.63, 392.00, 440.00, 523.25,
-                    392.00, 329.63, 293.66, 261.63
-                ];
-                const bass = [
-                    130.81, 0, 196.00, 0,
-                    174.61, 0, 146.83, 0,
-                    130.81, 0, 174.61, 0,
-                    196.00, 0, 146.83, 0
-                ];
+                try {
+                    if (this.bgmInterval || !this.enabled) return;
+                    const melody = [
+                        261.63, 329.63, 392.00, 523.25,
+                        440.00, 392.00, 329.63, 293.66,
+                        261.63, 392.00, 440.00, 523.25,
+                        392.00, 329.63, 293.66, 261.63
+                    ];
+                    const bass = [
+                        130.81, 0, 196.00, 0,
+                        174.61, 0, 146.83, 0,
+                        130.81, 0, 174.61, 0,
+                        196.00, 0, 146.83, 0
+                    ];
 
-                this.bgmInterval = setInterval(() => {
-                    if (!this.enabled || document.hidden || !this.ctx || this.ctx.state !== 'running') return;
-                    const now = this.ctx.currentTime;
-                    const idx = this.bgmStep % melody.length;
+                    this.bgmInterval = setInterval(() => {
+                        try {
+                            if (!this.enabled || document.hidden || !this.ctx || this.ctx.state !== 'running') return;
+                            const now = this.ctx.currentTime;
+                            const idx = this.bgmStep % melody.length;
 
-                    // Note mélodique douce (style marimba)
-                    const noteFreq = melody[idx];
-                    if (noteFreq) {
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(noteFreq, now);
-                        gain.gain.setValueAtTime(0.001, now);
-                        gain.gain.linearRampToValueAtTime(0.032, now + 0.03);
-                        gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.42);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now);
-                        osc.stop(now + 0.44);
-                    }
+                            const noteFreq = melody[idx];
+                            if (noteFreq) {
+                                const osc = this.ctx.createOscillator();
+                                const gain = this.ctx.createGain();
+                                osc.type = 'sine';
+                                osc.frequency.setValueAtTime(noteFreq, now);
+                                gain.gain.setValueAtTime(0.001, now);
+                                gain.gain.linearRampToValueAtTime(0.032, now + 0.03);
+                                gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.42);
+                                osc.connect(gain);
+                                gain.connect(this.ctx.destination);
+                                osc.start(now);
+                                osc.stop(now + 0.44);
+                            }
 
-                    // Basse légère sur les temps forts
-                    const bassFreq = bass[idx];
-                    if (bassFreq) {
-                        const bOsc = this.ctx.createOscillator();
-                        const bGain = this.ctx.createGain();
-                        bOsc.type = 'triangle';
-                        bOsc.frequency.setValueAtTime(bassFreq, now);
-                        bGain.gain.setValueAtTime(0.001, now);
-                        bGain.gain.linearRampToValueAtTime(0.025, now + 0.04);
-                        bGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.55);
-                        bOsc.connect(bGain);
-                        bGain.connect(this.ctx.destination);
-                        bOsc.start(now);
-                        bOsc.stop(now + 0.58);
-                    }
+                            const bassFreq = bass[idx];
+                            if (bassFreq) {
+                                const bOsc = this.ctx.createOscillator();
+                                const bGain = this.ctx.createGain();
+                                bOsc.type = 'triangle';
+                                bOsc.frequency.setValueAtTime(bassFreq, now);
+                                bGain.gain.setValueAtTime(0.001, now);
+                                bGain.gain.linearRampToValueAtTime(0.025, now + 0.04);
+                                bGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.55);
+                                bOsc.connect(bGain);
+                                bGain.connect(this.ctx.destination);
+                                bOsc.start(now);
+                                bOsc.stop(now + 0.58);
+                            }
 
-                    this.bgmStep++;
-                }, 480);
+                            this.bgmStep++;
+                        } catch (e) {}
+                    }, 480);
+                } catch (e) {}
             }
 
             stopBackgroundMusic() {
-                if (this.bgmInterval) {
-                    clearInterval(this.bgmInterval);
-                    this.bgmInterval = null;
-                }
+                try {
+                    if (this.bgmInterval) {
+                        clearInterval(this.bgmInterval);
+                        this.bgmInterval = null;
+                    }
+                } catch (e) {}
             }
 
             playSlotMachineJackpot() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
+                try {
+                    if (!this.enabled) return;
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
 
-                // 1. Rouleaux de machine à sous qui tournent et s'arrêtent (0.0s -> 0.6s)
-                for (let i = 0; i < 12; i++) {
-                    const t = now + i * 0.045;
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(280 + (i * 55), t);
-                    gain.gain.setValueAtTime(0.18, t);
-                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(t);
-                    osc.stop(t + 0.042);
-                }
+                    for (let i = 0; i < 12; i++) {
+                        const t = now + i * 0.045;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(280 + (i * 55), t);
+                        gain.gain.setValueAtTime(0.18, t);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(t);
+                        osc.stop(t + 0.042);
+                    }
 
-                // 2. Cloche Jackpot puissante + cascade de pièces métalliques (0.58s -> 2.1s)
-                const jackpotNotes = [987.77, 1318.51, 1567.98, 2093.00, 1567.98, 2093.00];
-                jackpotNotes.forEach((freq, idx) => {
-                    const t = now + 0.58 + idx * 0.11;
+                    const jackpotNotes = [987.77, 1318.51, 1567.98, 2093.00, 1567.98, 2093.00];
+                    jackpotNotes.forEach((freq, idx) => {
+                        const t = now + 0.58 + idx * 0.11;
+                        const osc1 = this.ctx.createOscillator();
+                        const osc2 = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+
+                        osc1.type = 'triangle';
+                        osc2.type = 'sine';
+                        osc1.frequency.setValueAtTime(freq, t);
+                        osc2.frequency.setValueAtTime(freq * 1.5, t);
+
+                        gain.gain.setValueAtTime(0.45, t);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
+                        osc1.connect(gain);
+                        osc2.connect(gain);
+                        gain.connect(this.ctx.destination);
+
+                        osc1.start(t);
+                        osc2.start(t);
+                        osc1.stop(t + 0.46);
+                        osc2.stop(t + 0.46);
+                    });
+
+                    for (let c = 0; c < 18; c++) {
+                        const t = now + 0.7 + c * 0.07;
+                        const coinOsc = this.ctx.createOscillator();
+                        const coinGain = this.ctx.createGain();
+                        coinOsc.type = 'sine';
+                        const baseFreq = 2200 + (c % 4) * 320;
+                        coinOsc.frequency.setValueAtTime(baseFreq, t);
+                        coinOsc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, t + 0.06);
+
+                        coinGain.gain.setValueAtTime(0.28, t);
+                        coinGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+                        coinOsc.connect(coinGain);
+                        coinGain.connect(this.ctx.destination);
+                        coinOsc.start(t);
+                        coinOsc.stop(t + 0.085);
+                    }
+                } catch (e) {}
+            }
+
+            playPop() {
+                try {
+                    if (!this.enabled) return;
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
+
                     const osc1 = this.ctx.createOscillator();
                     const osc2 = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
 
-                    osc1.type = 'triangle';
-                    osc2.type = 'sine';
-                    osc1.frequency.setValueAtTime(freq, t);
-                    osc2.frequency.setValueAtTime(freq * 1.5, t);
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(520, now);
+                    osc1.frequency.exponentialRampToValueAtTime(1180, now + 0.09);
 
-                    gain.gain.setValueAtTime(0.45, t);
-                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(1560, now + 0.04);
+                    osc2.frequency.exponentialRampToValueAtTime(2090, now + 0.14);
+
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
 
                     osc1.connect(gain);
                     osc2.connect(gain);
                     gain.connect(this.ctx.destination);
 
-                    osc1.start(t);
-                    osc2.start(t);
-                    osc1.stop(t + 0.46);
-                    osc2.stop(t + 0.46);
-                });
-
-                // 3. Pluie de pièces métalliques tombant dans le bac (0.7s -> 2.0s)
-                for (let c = 0; c < 18; c++) {
-                    const t = now + 0.7 + c * 0.07;
-                    const coinOsc = this.ctx.createOscillator();
-                    const coinGain = this.ctx.createGain();
-                    coinOsc.type = 'sine';
-                    const baseFreq = 2200 + (c % 4) * 320;
-                    coinOsc.frequency.setValueAtTime(baseFreq, t);
-                    coinOsc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, t + 0.06);
-
-                    coinGain.gain.setValueAtTime(0.28, t);
-                    coinGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-
-                    coinOsc.connect(coinGain);
-                    coinGain.connect(this.ctx.destination);
-                    coinOsc.start(t);
-                    coinOsc.stop(t + 0.085);
-                }
-            }
-
-            playPop() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-
-                // Son double pièce métallique + pop dynamique
-                const osc1 = this.ctx.createOscillator();
-                const osc2 = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-
-                osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(520, now);
-                osc1.frequency.exponentialRampToValueAtTime(1180, now + 0.09);
-
-                osc2.type = 'triangle';
-                osc2.frequency.setValueAtTime(1560, now + 0.04);
-                osc2.frequency.exponentialRampToValueAtTime(2090, now + 0.14);
-
-                gain.gain.setValueAtTime(0.35, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-
-                osc1.connect(gain);
-                osc2.connect(gain);
-                gain.connect(this.ctx.destination);
-
-                osc1.start(now);
-                osc2.start(now + 0.04);
-                osc1.stop(now + 0.16);
-                osc2.stop(now + 0.16);
+                    osc1.start(now);
+                    osc2.start(now + 0.04);
+                    osc1.stop(now + 0.16);
+                    osc2.stop(now + 0.16);
+                } catch (e) {}
             }
 
             playCashChime() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-                [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(0, now + idx * 0.055);
-                    gain.gain.linearRampToValueAtTime(0.25, now + idx * 0.055 + 0.02);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.35);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(now + idx * 0.055);
-                    osc.stop(now + idx * 0.055 + 0.35);
-                });
+                try {
+                    if (!this.enabled) return;
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0, now + idx * 0.055);
+                        gain.gain.linearRampToValueAtTime(0.25, now + idx * 0.055 + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.35);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.055);
+                        osc.stop(now + idx * 0.055 + 0.35);
+                    });
+                } catch (e) {}
             }
 
             playDeleteBuzz() {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(220, this.ctx.currentTime);
-                osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.15);
-                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.15);
+                try {
+                    if (!this.enabled) return;
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(110, this.ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                } catch (e) {}
             }
 
             playDailyGoalFanfare() {
-                this.playSlotMachineJackpot();
+                try {
+                    this.playSlotMachineJackpot();
+                } catch (e) {}
             }
 
             playLevelUpFanfare() {
-                this.playSlotMachineJackpot();
+                try {
+                    this.playSlotMachineJackpot();
+                } catch (e) {}
             }
         }
 
         const sounds = new SoundEngine();
 
-        // Démarrer automatiquement la musique de fond au premier toucher sur l'écran
         ['pointerdown', 'touchstart', 'keydown'].forEach(evt => {
             document.addEventListener(evt, () => {
                 if (sounds.enabled) sounds.init();
@@ -1230,6 +1409,7 @@
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 registerDailyVisit();
+                checkRemoteUpdate();
                 if (sounds.enabled) sounds.startBackgroundMusic();
             } else {
                 saveAnalytics();
@@ -1239,8 +1419,20 @@
 
         function updateAudioUI() {
             const icon = document.getElementById('audioIcon');
-            if (!icon) return;
-            icon.className = sounds.enabled ? 'fa-solid fa-volume-high text-xs text-amber-400' : 'fa-solid fa-volume-xmark text-xs text-slate-500';
+            if (icon) {
+                icon.className = sounds.enabled ? 'fa-solid fa-volume-high text-xs text-amber-400' : 'fa-solid fa-volume-xmark text-xs text-slate-500';
+            }
+        }
+
+        function toggleAudio() {
+            sounds.enabled = !sounds.enabled;
+            safeStorageSet('boutik_audio', String(sounds.enabled));
+            updateAudioUI();
+            if (sounds.enabled) {
+                sounds.init();
+            } else {
+                sounds.stopBackgroundMusic();
+            }
         }
 
         /* --------------------------------------------------
@@ -1251,11 +1443,20 @@
             { id: '2', name: 'Pain Baguette', category: 'boulangerie', sellPrice: 150, buyPrice: 100, image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=85' }
         ];
 
+        function loadInitialProducts() {
+            const raw = localStorage.getItem('boutik_products');
+            if (raw === null) {
+                return DEFAULT_PRODUCTS;
+            }
+            const parsed = safeJSONParse('boutik_products', DEFAULT_PRODUCTS);
+            return Array.isArray(parsed) ? parsed : DEFAULT_PRODUCTS;
+        }
+
         let state = {
-            products: JSON.parse(localStorage.getItem('boutik_products')) || DEFAULT_PRODUCTS,
+            products: loadInitialProducts(),
             cart: [],
-            credits: JSON.parse(localStorage.getItem('boutik_credits')) || [],
-            transactions: JSON.parse(localStorage.getItem('boutik_tx')) || [],
+            credits: safeJSONParse('boutik_credits', []),
+            transactions: safeJSONParse('boutik_tx', []),
             cycleDays: parseInt(localStorage.getItem('boutik_cycle_days')) || 30,
             dailyProfitGoal: parseInt(localStorage.getItem('boutik_daily_profit_goal')) || 5000,
             cycleGoal: (parseInt(localStorage.getItem('boutik_cycle_days')) || 30) * (parseInt(localStorage.getItem('boutik_daily_profit_goal')) || 5000),
@@ -1297,55 +1498,59 @@
         }
 
         function spawnGoldCoins(x, y, amount) {
-            const coin = document.createElement('div');
-            coin.className = 'floating-coin flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 font-black text-xs shadow-lg border border-amber-200';
-            coin.style.left = `${x}px`;
-            coin.style.top = `${y}px`;
-            const label = typeof amount === 'number' ? `+${amount.toLocaleString()} F` : amount;
-            coin.innerHTML = `<span>🪙</span><span>${label}</span>`;
-            document.body.appendChild(coin);
-            setTimeout(() => coin.remove(), 650);
+            try {
+                const coin = document.createElement('div');
+                coin.className = 'floating-coin flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 font-black text-xs shadow-lg border border-amber-200';
+                coin.style.left = `${x}px`;
+                coin.style.top = `${y}px`;
+                const label = typeof amount === 'number' ? `+${amount.toLocaleString()} F` : amount;
+                coin.innerHTML = `<span>🪙</span><span>${label}</span>`;
+                document.body.appendChild(coin);
+                setTimeout(() => coin.remove(), 650);
+            } catch (e) {}
         }
 
         function triggerConfetti() {
-            const canvas = document.getElementById('confettiCanvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            try {
+                const canvas = document.getElementById('confettiCanvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
 
-            const colors = ['#F59E0B', '#10B981', '#FDE047', '#38BDF8', '#F43F5E'];
-            const particles = Array.from({ length: 45 }, () => ({
-                x: canvas.width / 2,
-                y: canvas.height - 90,
-                vx: (Math.random() - 0.5) * 14,
-                vy: Math.random() * -15 - 5,
-                size: Math.random() * 7 + 4,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                rot: Math.random() * 360,
-                vRot: (Math.random() - 0.5) * 12
-            }));
+                const colors = ['#F59E0B', '#10B981', '#FDE047', '#38BDF8', '#F43F5E'];
+                const particles = Array.from({ length: 45 }, () => ({
+                    x: canvas.width / 2,
+                    y: canvas.height - 90,
+                    vx: (Math.random() - 0.5) * 14,
+                    vy: Math.random() * -15 - 5,
+                    size: Math.random() * 7 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rot: Math.random() * 360,
+                    vRot: (Math.random() - 0.5) * 12
+                }));
 
-            let frame = 0;
-            function anim() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                particles.forEach(p => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.vy += 0.45;
-                    p.rot += p.vRot;
-                    ctx.save();
-                    ctx.translate(p.x, p.y);
-                    ctx.rotate((p.rot * Math.PI) / 180);
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-                    ctx.restore();
-                });
-                frame++;
-                if (frame < 55) requestAnimationFrame(anim);
-                else ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-            requestAnimationFrame(anim);
+                let frame = 0;
+                function anim() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.45;
+                        p.rot += p.vRot;
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rot * Math.PI) / 180);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                        ctx.restore();
+                    });
+                    frame++;
+                    if (frame < 55) requestAnimationFrame(anim);
+                    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                requestAnimationFrame(anim);
+            } catch (e) {}
         }
 
         function triggerDailyGoalAnimation(todayProfit = 0) {
@@ -1371,390 +1576,558 @@
                 streakEl.innerText = s > 1 ? `SÉRIE : ${s} JOURS RÉUSSIS 🔥` : `1ÈRE VICTOIRE DU JOUR 🔥`;
             }
 
-            // Légère temporisation pour laisser finir l'encaissement puis afficher la modale inévitable
             setTimeout(() => {
                 openModal('dailyGoalModal');
             }, 450);
         }
 
         function claimDailyVictory() {
-            sounds.playCashChime();
-            spawnGoldCoins(window.innerWidth / 2, window.innerHeight / 2, 'BRAVO !');
             closeModal('dailyGoalModal');
+            try {
+                sounds.playCashChime();
+                spawnGoldCoins(window.innerWidth / 2, window.innerHeight / 2, 'BRAVO !');
+            } catch (e) {}
 
-            // Si l'objectif global du cycle est également atteint sur cette vente, ouvrir la montée de niveau juste après
             if (state.pendingLevelUpModal) {
                 state.pendingLevelUpModal = false;
                 setTimeout(() => {
-                    sounds.playLevelUpFanfare();
-                    triggerLevelUpFireworks();
+                    try {
+                        sounds.playLevelUpFanfare();
+                        triggerLevelUpFireworks();
+                    } catch (e) {}
                     openModal('goalReachedModal');
                 }, 300);
             }
         }
 
         function triggerLevelUpFireworks() {
-            const canvas = document.getElementById('confettiCanvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            let particles = [];
-            const colors = ['#F59E0B', '#FDE047', '#10B981', '#38BDF8', '#F43F5E', '#A855F7'];
-
-            // 3 salves d'explosion façon feu d'artifice
-            const centers = [
-                { x: canvas.width * 0.25, y: canvas.height * 0.35 },
-                { x: canvas.width * 0.75, y: canvas.height * 0.35 },
-                { x: canvas.width * 0.5, y: canvas.height * 0.25 }
-            ];
-
-            centers.forEach(c => {
-                for (let i = 0; i < 55; i++) {
-                    const angle = (Math.PI * 2 * i) / 55;
-                    const speed = Math.random() * 8 + 4;
-                    particles.push({
-                        x: c.x,
-                        y: c.y,
-                        vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed,
-                        size: Math.random() * 6 + 4,
-                        color: colors[Math.floor(Math.random() * colors.length)],
-                        alpha: 1,
-                        isCrown: i % 8 === 0
-                    });
-                }
-            });
-
-            let start = performance.now();
-            function anim(now) {
-                const elapsed = now - start;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                particles.forEach(p => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.vy += 0.18;
-                    p.vx *= 0.98;
-                    p.alpha -= 0.009;
-
-                    ctx.save();
-                    ctx.globalAlpha = Math.max(p.alpha, 0);
-                    if (p.isCrown) {
-                        ctx.font = '16px Arial';
-                        ctx.fillText('👑', p.x, p.y);
-                    } else {
-                        ctx.fillStyle = p.color;
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                    ctx.restore();
-                });
-                if (elapsed < 2200) requestAnimationFrame(anim);
-                else ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-            requestAnimationFrame(anim);
-        }
-
-        function setupAppIconsFromImportedDesign() {
-            const svgEl = document.getElementById('brandLogoSvg');
-            if (!svgEl) return;
-            const serializer = new XMLSerializer();
-            const svgString = serializer.serializeToString(svgEl);
-            const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(svgBlob);
-
-            const favicon = document.getElementById('appFavicon');
-            if (favicon) favicon.href = url;
-
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 512;
-                canvas.height = 512;
+            try {
+                const canvas = document.getElementById('confettiCanvas');
+                if (!canvas) return;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, 512, 512);
-                const pngUrl = canvas.toDataURL('image/png');
-                const appleIcon = document.getElementById('appleTouchIcon');
-                if (appleIcon) appleIcon.href = pngUrl;
-            };
-            img.src = url;
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+
+                let particles = [];
+                const colors = ['#F59E0B', '#FDE047', '#10B981', '#38BDF8', '#F43F5E', '#A855F7'];
+
+                const centers = [
+                    { x: canvas.width * 0.25, y: canvas.height * 0.35 },
+                    { x: canvas.width * 0.75, y: canvas.height * 0.35 },
+                    { x: canvas.width * 0.5, y: canvas.height * 0.25 }
+                ];
+
+                centers.forEach(c => {
+                    for (let i = 0; i < 55; i++) {
+                        const angle = (Math.PI * 2 * i) / 55;
+                        const speed = Math.random() * 8 + 4;
+                        particles.push({
+                            x: c.x,
+                            y: c.y,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed,
+                            size: Math.random() * 6 + 4,
+                            color: colors[Math.floor(Math.random() * colors.length)],
+                            alpha: 1,
+                            isCrown: i % 8 === 0
+                        });
+                    }
+                });
+
+                let start = performance.now();
+                function anim(now) {
+                    const elapsed = now - start;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.18;
+                        p.vx *= 0.98;
+                        p.alpha -= 0.009;
+
+                        ctx.save();
+                        ctx.globalAlpha = Math.max(p.alpha, 0);
+                        if (p.isCrown) {
+                            ctx.font = '16px Arial';
+                            ctx.fillText('👑', p.x, p.y);
+                        } else {
+                            ctx.fillStyle = p.color;
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    });
+                    if (elapsed < 2200) requestAnimationFrame(anim);
+                    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                requestAnimationFrame(anim);
+            } catch (e) {}
         }
 
         /* --------------------------------------------------
-         * 5. CORE APP RENDERING & METRICS
+         * 4. APP LOGIC, MODALS & CORE FUNCTIONS
          * -------------------------------------------------- */
+        function cleanLegacyTransactionImages() {
+            if (!Array.isArray(state.transactions)) return;
+            let modified = false;
+            state.transactions.forEach(tx => {
+                if (Array.isArray(tx.items)) {
+                    tx.items.forEach(item => {
+                        if (item && 'image' in item) {
+                            delete item.image;
+                            modified = true;
+                        }
+                    });
+                }
+            });
+            if (modified) {
+                saveTransactionsSafely();
+            }
+        }
+
+        async function hydrateProductImagesFromVault() {
+            let needsRender = false;
+            for (const p of state.products) {
+                if (p && typeof p.image === 'string' && p.image.startsWith('idb:')) {
+                    const id = p.image.slice(4);
+                    const cachedDataUrl = await ImageVault.getImage(id);
+                    if (cachedDataUrl) {
+                        p.image = cachedDataUrl;
+                        needsRender = true;
+                    }
+                } else if (p && typeof p.image === 'string' && p.image.startsWith('data:image')) {
+                    // Sauvegarder une copie de secours dans IndexedDB hors-ligne
+                    ImageVault.saveImage(p.id, p.image);
+                }
+            }
+            if (needsRender) {
+                renderProducts();
+            }
+        }
+
         function initApp() {
-            setupAppIconsFromImportedDesign();
+            cleanLegacyTransactionImages();
             registerDailyVisit();
             setLanguage(currentLang);
+            updateAudioUI();
             renderProducts();
+            hydrateProductImagesFromVault();
             renderCart(false);
-            updateKPIs(false);
             renderCredits();
             renderHistory();
-            updateAudioUI();
-            updateLevelUI();
+            updateKPIs(false);
 
             if (!state.isConfigured) {
-                document.getElementById('btnCloseCycleModal').classList.add('hidden');
-                document.getElementById('btnResetCycle').classList.add('hidden');
-                selectCycleDuration(state.cycleDays);
                 openModal('cycleModal');
             }
+
+            checkRemoteUpdate();
+            setInterval(() => {
+                if (navigator.onLine) {
+                    checkRemoteUpdate();
+                }
+            }, 60000);
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+            }
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            }
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        function toggleDeleteMode() {
+            state.deleteMode = !state.deleteMode;
+            const btn = document.getElementById('btnToggleDelete');
+            if (btn) {
+                btn.className = state.deleteMode 
+                    ? 'w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center transition animate-bounce' 
+                    : 'w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-red-400 flex items-center justify-center transition';
+            }
+            renderProducts();
         }
 
         function filterCategory(cat, btn) {
             state.currentCategory = cat;
             document.querySelectorAll('.cat-btn').forEach(b => {
-                b.classList.remove('active', 'bg-amber-500', 'text-slate-950', 'font-bold');
-                b.classList.add('bg-slate-800', 'text-slate-300');
+                b.className = 'cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap';
             });
             if (btn) {
-                btn.classList.add('active', 'bg-amber-500', 'text-slate-950', 'font-bold');
-                btn.classList.remove('bg-slate-800', 'text-slate-300');
+                btn.className = 'cat-btn active px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition whitespace-nowrap';
             }
-            sounds.playPop();
             renderProducts();
         }
 
         function renderProducts() {
             const grid = document.getElementById('productGrid');
             if (!grid) return;
+            grid.innerHTML = '';
 
-            const filtered = state.currentCategory === 'all'
-                ? state.products
+            // Add Article Tile
+            const addCard = document.createElement('div');
+            addCard.onclick = () => {
+                trackUsage('Ajout Article');
+                openModal('addProductModal');
+            };
+            addCard.className = 'aspect-square bg-slate-800/60 hover:bg-slate-800 border-2 border-dashed border-amber-500/40 hover:border-amber-400 rounded-2xl flex flex-col items-center justify-center p-2 cursor-pointer text-center group transition active:scale-95';
+            addCard.innerHTML = `
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 group-hover:bg-amber-500 text-amber-400 group-hover:text-slate-950 flex items-center justify-center text-lg mb-1 transition">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+                <span class="text-xs font-bold text-amber-400 group-hover:text-amber-300 leading-tight">${i18n[currentLang]?.addProduct || 'Ajouter'}</span>
+                <span class="text-[9px] text-slate-400 font-medium">${i18n[currentLang]?.addPhotoSub || '+ Photo'}</span>
+            `;
+            grid.appendChild(addCard);
+
+            const filtered = state.currentCategory === 'all' 
+                ? state.products 
                 : state.products.filter(p => p.category === state.currentCategory);
 
-            let html = filtered.map(prod => {
-                const inCart = state.cart.find(i => i.id === prod.id);
-                const qty = inCart ? inCart.qty : 0;
-                const borderStyle = state.deleteMode
-                    ? 'border-red-500 ring-2 ring-red-500/40'
-                    : (qty > 0 ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-slate-800 hover:border-amber-500/60');
+            filtered.forEach(p => {
+                const inCart = state.cart.find(c => c.id === p.id);
+                const count = inCart ? inCart.qty : 0;
 
-                return `
-                    <div id="prod-card-${prod.id}" onclick="handleProductClick('${prod.id}', event)" class="relative aspect-[4/3] sm:aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 border-2 ${borderStyle} cursor-pointer shadow-md group transition">
-                        <img src="${prod.image}" alt="${prod.name}" class="w-full h-full object-cover ${state.deleteMode ? 'opacity-65' : 'group-hover:scale-105'} transition-transform duration-200" onerror="this.onerror=null;this.src='https://placehold.co/400x400/1e293b/f59e0b?text=Produit'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent"></div>
+                const card = document.createElement('div');
+                card.className = `relative aspect-square rounded-2xl overflow-hidden border-2 transition cursor-pointer select-none flex flex-col justify-between p-1.5 shadow-md ${
+                    state.deleteMode ? 'border-red-500 animate-pulse' : count > 0 ? 'border-amber-400 bg-slate-800 ring-2 ring-amber-400/30' : 'border-slate-800 bg-slate-900/90 hover:border-slate-700'
+                }`;
 
-                        ${state.deleteMode ? `
-                            <div class="absolute inset-0 flex items-center justify-center bg-red-950/30 z-20">
-                                <span class="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg border-2 border-white">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </span>
-                            </div>
-                        ` : ''}
+                card.onclick = (e) => {
+                    if (state.deleteMode) {
+                        deleteProduct(p.id);
+                    } else {
+                        addToCart(p, e);
+                    }
+                };
+                const imgUrl = (p.image && !p.image.startsWith('idb:'))
+                    ? p.image
+                    : 'https://placehold.co/400x400/1e293b/f59e0b?text=' + encodeURIComponent(p.name);
 
-                        ${!state.deleteMode && qty > 0 ? `
-                            <span class="absolute top-1.5 right-1.5 bg-amber-400 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded-full shadow border border-slate-900 z-10">
-                                x${qty}
-                            </span>
-                        ` : ''}
+                card.innerHTML = `
+                    <img src="${imgUrl}" onerror="this.src='https://placehold.co/400x400/1e293b/f59e0b?text=Article'" class="absolute inset-0 w-full h-full object-cover opacity-45 group-hover:opacity-60 transition">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
 
-                        <div class="absolute bottom-0 inset-x-0 p-2 z-10">
-                            <p class="text-[11px] font-bold text-white leading-tight line-clamp-1 drop-shadow">${prod.name}</p>
-                            <div class="mt-0.5 flex items-center justify-between gap-1">
-                                <span class="inline-block text-[10px] font-black text-amber-400 bg-slate-950/90 px-1.5 py-0.5 rounded border border-amber-500/30">
-                                    ${prod.sellPrice.toLocaleString()} F
-                                </span>
-                            </div>
-                        </div>
+                    <!-- Top Bar: Badge quantity -->
+                    <div class="relative z-10 flex justify-between items-start w-full">
+                        ${count > 0 ? `<span class="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] shadow">${count}</span>` : '<div></div>'}
+                        ${state.deleteMode ? `<span class="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-xs shadow"><i class="fa-solid fa-trash"></i></span>` : ''}
+                    </div>
+
+                    <!-- Bottom Bar: Name & Price -->
+                    <div class="relative z-10 text-left min-w-0">
+                        <p class="text-xs font-bold text-white leading-tight truncate drop-shadow-sm">${p.name}</p>
+                        <p class="text-xs font-black text-amber-400 mt-0.5 drop-shadow">${p.sellPrice.toLocaleString()} F</p>
                     </div>
                 `;
-            }).join('');
-
-            // Tuile "+ Ajouter"
-            html += `
-                <div onclick="openModal('addProductModal')" class="aspect-[4/3] sm:aspect-square rounded-xl sm:rounded-2xl border-2 border-dashed border-amber-500/50 hover:border-amber-400 bg-slate-900/60 hover:bg-slate-800/80 flex flex-col items-center justify-center cursor-pointer text-amber-400 p-1.5 text-center transition">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mb-1">
-                        <i class="fa-solid fa-camera text-xs sm:text-base"></i>
-                    </div>
-                    <span data-i18n="addProduct" class="text-[11px] sm:text-xs font-extrabold leading-tight">${i18n[currentLang].addProduct}</span>
-                    <span class="text-[8px] sm:text-[9px] text-slate-400">${i18n[currentLang].addPhotoSub}</span>
-                </div>
-            `;
-
-            grid.innerHTML = html;
+                grid.appendChild(card);
+            });
         }
 
-        function handleProductClick(productId, event) {
-            if (state.deleteMode) {
-                state.products = state.products.filter(p => p.id !== productId);
-                state.cart = state.cart.filter(i => i.id !== productId);
-                localStorage.setItem('boutik_products', JSON.stringify(state.products));
-                sounds.playDeleteBuzz();
-                renderProducts();
-                renderCart(false);
-                return;
-            }
-
-            const prod = state.products.find(p => p.id === productId);
-            if (!prod) return;
-
-            const cardEl = document.getElementById(`prod-card-${productId}`);
-            if (cardEl) {
-                cardEl.classList.remove('animate-simple-tap');
-                void cardEl.offsetWidth;
-                cardEl.classList.add('animate-simple-tap');
-            }
-
-            const existing = state.cart.find(i => i.id === productId);
-            if (existing) {
-                existing.qty += 1;
-            } else {
-                state.cart.push({
-                    id: prod.id,
-                    name: prod.name,
-                    sellPrice: prod.sellPrice,
-                    buyPrice: prod.buyPrice,
-                    image: prod.image,
-                    qty: 1
-                });
-            }
-
+        function addToCart(p, event) {
             sounds.playPop();
-            trackUsage('Clic Produit');
-
-            // Spawn flying gold coins at click coordinates
+            trackUsage('Ajout Panier');
             if (event) {
-                const clientX = event.clientX || (event.touches && event.touches[0].clientX) || window.innerWidth / 2;
-                const clientY = event.clientY || (event.touches && event.touches[0].clientY) || window.innerHeight / 2;
-                spawnGoldCoins(clientX, clientY, prod.sellPrice);
+                const x = event.clientX || (event.touches && event.touches[0]?.clientX) || window.innerWidth / 2;
+                const y = event.clientY || (event.touches && event.touches[0]?.clientY) || window.innerHeight / 2;
+                spawnGoldCoins(x, y, p.sellPrice);
             }
-
-            renderCart(true);
+            const item = state.cart.find(c => c.id === p.id);
+            if (item) {
+                item.qty++;
+            } else {
+                state.cart.push({ ...p, qty: 1 });
+            }
             renderProducts();
+            renderCart();
         }
 
-        function updateCartQty(productId, delta) {
-            const item = state.cart.find(i => i.id === productId);
-            if (!item) return;
-
-            item.qty += delta;
-            if (item.qty <= 0) {
-                state.cart = state.cart.filter(i => i.id !== productId);
-                sounds.playDeleteBuzz();
-            } else {
-                sounds.playPop();
-            }
-            renderCart(true);
+        function deleteProduct(id) {
+            sounds.playDeleteBuzz();
+            state.products = state.products.filter(p => p.id !== id);
+            state.cart = state.cart.filter(c => c.id !== id);
+            ImageVault.deleteImage(id);
+            saveProductsSafely();
             renderProducts();
+            renderCart();
+        }
+
+        function processFinalPayment(type, customerName = null) {
+            const total = state.cart.reduce((acc, c) => acc + (c.sellPrice * c.qty), 0);
+            const profit = state.cart.reduce((acc, c) => acc + ((c.sellPrice - c.buyPrice) * c.qty), 0);
+            const today = getTodayISO();
+
+            // Alléger l'historique : stocker uniquement id, name, sellPrice, buyPrice, qty (sans image base64)
+            const lightItems = state.cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                sellPrice: item.sellPrice,
+                buyPrice: item.buyPrice,
+                qty: item.qty
+            }));
+
+            const tx = {
+                id: Date.now().toString(),
+                date: today,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                items: lightItems,
+                total: total,
+                profit: profit,
+                type: type,
+                customer: customerName || (type === 'credit' ? 'Client Anonyme' : 'Client Comptant')
+            };
+
+            state.transactions.unshift(tx);
+            saveTransactionsSafely();
+
+            if (type === 'credit') {
+                state.credits.unshift({
+                    id: tx.id,
+                    customer: customerName || 'Client Anonyme',
+                    amount: total,
+                    date: today,
+                    items: lightItems
+                });
+                safeStorageSet('boutik_credits', JSON.stringify(state.credits));
+            }
+
+            // Daily Profit Goal logic & streak
+            const todayProfit = state.transactions
+                .filter(t => t.date === today)
+                .reduce((acc, t) => acc + t.profit, 0);
+
+            let triggeredDaily = false;
+            if (todayProfit >= state.dailyProfitGoal && state.dailyGoalCelebratedDate !== today) {
+                state.dailyGoalCelebratedDate = today;
+                state.dailyStreak++;
+                safeStorageSet('boutik_daily_goal_date', today);
+                safeStorageSet('boutik_daily_streak', String(state.dailyStreak));
+                triggeredDaily = true;
+            }
+
+            // Cycle Goal Level Up logic
+            const totalCycleProfit = state.transactions.reduce((acc, t) => acc + t.profit, 0);
+            let triggeredLevelUp = false;
+
+            if (totalCycleProfit >= state.cycleGoal && !state.goalCelebrated) {
+                state.goalCelebrated = true;
+                state.shopLevel++;
+                safeStorageSet('boutik_goal_celebrated', 'true');
+                safeStorageSet('boutik_shop_level', String(state.shopLevel));
+                triggeredLevelUp = true;
+            }
+
+            // 6. Prioriser la validation et le vidage du panier + mise à jour UI AVANT les effets
+            state.cart = [];
+            renderCart();
+            renderProducts();
+            updateKPIs();
+            renderCredits();
+            renderHistory();
+
+            // Effets sonores et visuels isolés contre tout blocage iOS
+            try {
+                sounds.playCashChime();
+                triggerConfetti();
+                spawnGoldCoins(window.innerWidth / 2, window.innerHeight - 100, total);
+            } catch (e) {}
+
+            if (triggeredDaily) {
+                state.pendingLevelUpModal = triggeredLevelUp;
+                try { sounds.playDailyGoalFanfare(); } catch (e) {}
+                triggerDailyGoalAnimation(todayProfit);
+            } else if (triggeredLevelUp) {
+                try {
+                    sounds.playLevelUpFanfare();
+                    triggerLevelUpFireworks();
+                } catch (e) {}
+                openModal('goalReachedModal');
+            }
+        }
+
+        function processCheckout(type, customerName) {
+            processFinalPayment(type, customerName);
         }
 
         function renderCart(animate = true) {
-            const drawer = document.getElementById('cartDrawerContent');
-            const totalDisplay = document.getElementById('cartTotalDisplay');
-            const badge = document.getElementById('cartBadgeCount');
+            const total = state.cart.reduce((acc, c) => acc + (c.sellPrice * c.qty), 0);
+            const count = state.cart.reduce((acc, c) => acc + c.qty, 0);
 
-            const totalCount = state.cart.reduce((sum, item) => sum + item.qty, 0);
-            const totalPrice = state.cart.reduce((sum, item) => sum + (item.sellPrice * item.qty), 0);
-
-            badge.innerText = totalCount;
-
-            if (animate) {
-                animateNumber(totalDisplay, state.displayedCartTotal, totalPrice, 300, ' FCFA');
-            } else {
-                totalDisplay.innerText = `${totalPrice.toLocaleString()} FCFA`;
+            const totalEl = document.getElementById('cartTotalDisplay');
+            if (totalEl) {
+                if (animate && state.displayedCartTotal !== total) {
+                    animateNumber(totalEl, state.displayedCartTotal, total, 300, ' FCFA');
+                } else {
+                    totalEl.innerText = `${total.toLocaleString()} FCFA`;
+                }
+                state.displayedCartTotal = total;
             }
-            state.displayedCartTotal = totalPrice;
+
+            const countEl = document.getElementById('cartBadgeCount');
+            if (countEl) countEl.innerText = count;
+
+            const drawer = document.getElementById('cartDrawerContent');
+            if (!drawer) return;
 
             if (state.cart.length === 0) {
-                drawer.innerHTML = `<p class="text-center text-xs text-slate-500 py-3">${i18n[currentLang].emptyCart}</p>`;
+                drawer.innerHTML = `<div class="text-center py-4 text-xs text-slate-500">${i18n[currentLang]?.emptyCart || 'Votre panier est vide'}</div>`;
                 return;
             }
 
             drawer.innerHTML = state.cart.map(item => `
                 <div class="flex items-center justify-between py-2 text-xs">
-                    <div class="flex items-center gap-2">
-                        <img src="${item.image}" class="w-8 h-8 rounded-lg object-cover">
-                        <div>
-                            <p class="font-bold text-white">${item.name}</p>
-                            <p class="text-[10px] text-amber-400 font-semibold">${item.sellPrice} FCFA</p>
-                        </div>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="font-bold text-white truncate max-w-[130px]">${item.name}</span>
+                        <span class="text-slate-400">(${item.sellPrice.toLocaleString()} F)</span>
                     </div>
-                    <div class="flex items-center gap-2 bg-slate-800 rounded-lg p-1 border border-slate-700">
-                        <button onclick="updateCartQty('${item.id}', -1)" class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center text-xs font-bold">-</button>
-                        <span class="font-black text-white text-xs px-1">${item.qty}</span>
-                        <button onclick="updateCartQty('${item.id}', 1)" class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center text-xs font-bold">+</button>
+                    <div class="flex items-center gap-2">
+                        <button onclick="updateQty('${item.id}', -1)" class="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 text-amber-400 flex items-center justify-center font-bold text-sm">-</button>
+                        <span class="font-black text-amber-400 w-4 text-center">${item.qty}</span>
+                        <button onclick="updateQty('${item.id}', 1)" class="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 text-amber-400 flex items-center justify-center font-bold text-sm">+</button>
+                        <span class="font-black text-white ml-2 min-w-[60px] text-right">${(item.sellPrice * item.qty).toLocaleString()} F</span>
                     </div>
                 </div>
             `).join('');
         }
 
+        function updateQty(id, delta) {
+            const item = state.cart.find(c => c.id === id);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) {
+                state.cart = state.cart.filter(c => c.id !== id);
+            }
+            renderProducts();
+            renderCart();
+        }
+
         function toggleCartDrawer() {
             const drawer = document.getElementById('cartDrawerContent');
             const chevron = document.getElementById('cartChevron');
-            drawer.classList.toggle('hidden');
-            chevron.classList.toggle('rotate-180');
+            if (!drawer) return;
+            const isHidden = drawer.classList.contains('hidden');
+            if (isHidden) {
+                drawer.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                drawer.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
         }
 
         function checkout(type) {
             if (state.cart.length === 0) return;
-
             if (type === 'credit') {
                 openModal('creditCustomerModal');
                 return;
             }
-
-            processFinalPayment('Comptant');
+            processCheckout(type, 'Client Comptant');
         }
 
         function confirmCreditCheckout() {
             const nameInput = document.getElementById('creditCustomerInput');
-            const name = nameInput.value.trim() || 'Client Inconnu';
-            
-            processFinalPayment('Crédit', name);
-            nameInput.value = '';
+            const name = nameInput?.value?.trim() || 'Client Anonyme';
             closeModal('creditCustomerModal');
+            if (nameInput) nameInput.value = '';
+            processFinalPayment('credit', name);
         }
 
-        function processFinalPayment(type, customerName = null) {
-            const total = state.cart.reduce((sum, item) => sum + (item.sellPrice * item.qty), 0);
-            const totalCost = state.cart.reduce((sum, item) => sum + (item.buyPrice * item.qty), 0);
-            const profit = total - totalCost;
+        function updateKPIs(animate = true) {
+            const totalCA = state.transactions.reduce((acc, t) => acc + t.total, 0);
+            const totalProfit = state.transactions.reduce((acc, t) => acc + t.profit, 0);
 
-            // Create Transaction Record with ISO Date for 30-day history filtering
-            const now = new Date();
-            const tx = {
-                id: Date.now().toString(),
-                isoDate: now.toISOString().split('T')[0],
-                date: now.toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-                total,
-                profit,
-                type,
-                customer: customerName,
-                items: [...state.cart]
-            };
+            const caEl = document.getElementById('kpiCa');
+            const profitEl = document.getElementById('kpiBenefit');
 
-            trackUsage(type === 'Crédit' ? 'Vente à Crédit' : 'Encaissement Comptant');
-            state.transactions.unshift(tx);
+            if (animate) {
+                animateNumber(caEl, state.displayedCA, totalCA, 400, ' FCFA');
+                animateNumber(profitEl, state.displayedProfit, totalProfit, 400, ' FCFA');
+            } else {
+                if (caEl) caEl.innerText = `${totalCA.toLocaleString()} FCFA`;
+                if (profitEl) profitEl.innerText = `${totalProfit.toLocaleString()} FCFA`;
+            }
+            state.displayedCA = totalCA;
+            state.displayedProfit = totalProfit;
 
-            if (type === 'Crédit') {
-                state.credits.unshift({
-                    id: Date.now().toString(),
-                    customer: customerName,
-                    amount: total,
-                    date: tx.date
-                });
-                localStorage.setItem('boutik_credits', JSON.stringify(state.credits));
+            // Level & Rank Badges
+            const lvlBadge = document.getElementById('shopLevelBadge');
+            if (lvlBadge) lvlBadge.innerText = `Niv. ${state.shopLevel}`;
+
+            const rankIndex = Math.min(state.shopLevel - 1, SHOP_RANKS.length - 1);
+            const rankTitleEl = document.getElementById('newRankTitle');
+            if (rankTitleEl) rankTitleEl.innerText = SHOP_RANKS[rankIndex];
+
+            const modalLvlBadge = document.getElementById('modalNewLevelBadge');
+            if (modalLvlBadge) modalLvlBadge.innerText = `NIV. ${state.shopLevel}`;
+
+            // Progress bar
+            // Progress bar (Objectif du Jour uniquement)
+            const today = getTodayISO();
+            const todayProfit = state.transactions.filter(t => t.date === today).reduce((acc, t) => acc + t.profit, 0);
+            const dailyPercent = state.dailyProfitGoal > 0 ? Math.min(100, Math.round((todayProfit / state.dailyProfitGoal) * 100)) : 0;
+
+            const bar = document.getElementById('dailyProgressBar');
+            if (bar) bar.style.width = `${dailyPercent}%`;
+
+            const dailyStatus = document.getElementById('dailyGoalMiniStatus');
+            if (dailyStatus) {
+                const dayWord = i18n[currentLang]?.dayLabel || 'Jour';
+                dailyStatus.innerText = `${dayWord} : ${todayProfit.toLocaleString()} / ${state.dailyProfitGoal.toLocaleString()} F (${dailyPercent}%)`;
+            }
+        }
+
+        function renderCredits() {
+            const list = document.getElementById('creditList');
+            const badge = document.getElementById('creditBadgeCount');
+            if (badge) {
+                badge.innerText = state.credits.length;
+                badge.classList.toggle('hidden', state.credits.length === 0);
             }
 
-            // Persistence
-            localStorage.setItem('boutik_tx', JSON.stringify(state.transactions));
+            if (!list) return;
+            if (state.credits.length === 0) {
+                list.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">${i18n[currentLang]?.noCreditsMsg || 'Aucune dette en cours 👍'}</div>`;
+                return;
+            }
 
-            // Visual & Sound Feedback
+            list.innerHTML = state.credits.map(c => `
+                <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3 flex items-center justify-between gap-2">
+                    <div>
+                        <p class="font-bold text-white text-xs">${c.customer}</p>
+                        <p class="text-[10px] text-slate-400">${c.date} • ${c.items.length} article(s)</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-black text-amber-400 text-xs">${c.amount.toLocaleString()} F</span>
+                        <button onclick="payCredit('${c.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] shadow">
+                            ${i18n[currentLang]?.paidBtn || '✓ Payé'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function payCredit(id) {
             sounds.playCashChime();
-            triggerConfetti();
-            spawnGoldCoins(window.innerWidth / 2, window.innerHeight - 100, total);
-
-            // Clear Cart & Refresh UI
-            state.cart = [];
-            renderCart(true);
-            renderProducts();
-            updateKPIs(true);
+            state.credits = state.credits.filter(c => c.id !== id);
+            safeStorageSet('boutik_credits', JSON.stringify(state.credits));
             renderCredits();
-            renderHistory();
         }
 
         function processProductImage(event) {
@@ -1765,7 +2138,7 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const SIZE = 500;
+                    const SIZE = 250;
                     canvas.width = SIZE;
                     canvas.height = SIZE;
                     const ctx = canvas.getContext('2d');
@@ -1775,75 +2148,111 @@
                     const sx = (img.width - minSide) / 2;
                     const sy = (img.height - minSide) / 2;
                     ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, SIZE, SIZE);
-                    state.tempImageData = canvas.toDataURL('image/jpeg', 0.88);
-                    document.getElementById('prodImagePreview').src = state.tempImageData;
+                    state.tempImageData = canvas.toDataURL('image/jpeg', 0.72);
+                    const prev = document.getElementById('prodImagePreview');
+                    if (prev) prev.src = state.tempImageData;
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
+        function updateLiveMarginPreview() {
+            const buy = parseFloat(document.getElementById('prodBuyPrice').value) || 0;
+            const sell = parseFloat(document.getElementById('prodSellPrice').value) || 0;
+            const margin = sell - buy;
+            const preview = document.getElementById('liveMarginPreview');
+            if (preview) {
+                preview.innerText = `${margin >= 0 ? '+' : ''}${margin.toLocaleString()} FCFA`;
+                preview.className = margin >= 0 ? 'font-black text-emerald-400' : 'font-black text-red-400';
+            }
+        }
+
         function handleSaveProduct(e) {
             e.preventDefault();
-            const name = document.getElementById('prodName').value;
+            const name = document.getElementById('prodName').value.trim();
             const category = document.getElementById('prodCategory').value;
-            const sellPrice = parseInt(document.getElementById('prodSellPrice').value);
-            const buyPrice = parseInt(document.getElementById('prodBuyPrice').value);
-            const image = state.tempImageData || 'https://placehold.co/500x500/1e293b/f59e0b?text=Produit';
+            const buyPrice = parseFloat(document.getElementById('prodBuyPrice').value) || 0;
+            const sellPrice = parseFloat(document.getElementById('prodSellPrice').value) || 0;
 
             const newProd = {
                 id: Date.now().toString(),
                 name,
                 category,
-                sellPrice,
                 buyPrice,
-                image
+                sellPrice,
+                image: state.tempImageData || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=85'
             };
 
-            state.products.push(newProd);
-            localStorage.setItem('boutik_products', JSON.stringify(state.products));
+            if (state.tempImageData) {
+                ImageVault.saveImage(newProd.id, state.tempImageData);
+            }
+
+            state.products.unshift(newProd);
+            saveProductsSafely();
             state.tempImageData = null;
             document.getElementById('formAddProduct').reset();
-            document.getElementById('prodImagePreview').src = 'https://placehold.co/250x250/1e293b/f59e0b?text=Boutik';
+            document.getElementById('prodImagePreview').src = 'https://placehold.co/500x500/1e293b/f59e0b?text=Photo';
             closeModal('addProductModal');
-            sounds.playCashChime();
             renderProducts();
         }
 
-        function renderCredits() {
-            const list = document.getElementById('creditList');
-            const badge = document.getElementById('creditBadgeCount');
-            if (badge) {
-                badge.innerText = state.credits.length;
-                if (state.credits.length > 0) badge.classList.remove('hidden');
-                else badge.classList.add('hidden');
-            }
-            if (!list) return;
-            const dict = i18n[currentLang] || i18n.fr;
-            if (state.credits.length === 0) {
-                list.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">${dict.noCreditsMsg}</p>`;
-                return;
-            }
-            list.innerHTML = state.credits.map(c => `
-                <div class="bg-slate-800 border border-slate-700/60 rounded-xl p-3 flex items-center justify-between text-xs">
-                    <div>
-                        <p class="font-bold text-amber-400">${c.customer}</p>
-                        <p class="text-[10px] text-slate-400">${c.date}</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="font-black text-white">${c.amount.toLocaleString()} FCFA</span>
-                        <button onclick="settleCredit('${c.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]">${dict.paidBtn}</button>
-                    </div>
-                </div>
-            `).join('');
+        function selectCycleDuration(days) {
+            state.cycleDays = days;
+            [7, 14, 30].forEach(d => {
+                const btn = document.getElementById(`cycleBtn${d}`);
+                if (btn) {
+                    btn.className = d === days 
+                        ? 'py-2.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-extrabold text-center transition' 
+                        : 'py-2.5 rounded-xl border border-slate-700 bg-slate-800 font-bold text-center transition';
+                }
+            });
+            updateCalculatedCycleGoal();
         }
 
-        function settleCredit(creditId) {
-            state.credits = state.credits.filter(c => c.id !== creditId);
-            localStorage.setItem('boutik_credits', JSON.stringify(state.credits));
-            sounds.playCashChime();
-            triggerConfetti();
+        function updateCalculatedCycleGoal() {
+            const daily = parseFloat(document.getElementById('dailyProfitGoalInput').value) || 0;
+            const total = daily * state.cycleDays;
+            const prev = document.getElementById('calculatedTotalGoalPreview');
+            if (prev) prev.innerText = `${total.toLocaleString()} FCFA`;
+        }
+
+        function handleSaveCycleConfig(e) {
+            e.preventDefault();
+            const daily = parseFloat(document.getElementById('dailyProfitGoalInput').value) || 5000;
+            state.dailyProfitGoal = daily;
+            state.cycleGoal = daily * state.cycleDays;
+            state.isConfigured = true;
+
+            safeStorageSet('boutik_cycle_days', String(state.cycleDays));
+            safeStorageSet('boutik_daily_profit_goal', String(daily));
+            safeStorageSet('boutik_cycle_configured', 'true');
+
+            closeModal('cycleModal');
+            updateKPIs();
+        }
+
+        function resetCycle() {
+            state.transactions = [];
+            state.credits = [];
+            state.goalCelebrated = false;
+            safeStorageSet('boutik_tx', JSON.stringify([]));
+            safeStorageSet('boutik_credits', JSON.stringify([]));
+            safeStorageSet('boutik_goal_celebrated', 'false');
+            updateKPIs();
             renderCredits();
+            renderHistory();
+            closeModal('cycleModal');
+        }
+
+        function increaseDailyProfitGoal() {
+            state.dailyProfitGoal += 2000;
+            state.cycleGoal = state.dailyProfitGoal * state.cycleDays;
+            state.goalCelebrated = false;
+            safeStorageSet('boutik_daily_profit_goal', String(state.dailyProfitGoal));
+            safeStorageSet('boutik_goal_celebrated', 'false');
+            closeModal('goalReachedModal');
+            updateKPIs();
         }
 
         function openHistoryModal() {
@@ -1853,298 +2262,61 @@
         }
 
         function changeHistoryDay(delta) {
-            const nextOffset = state.historyDayOffset + delta;
-            if (nextOffset > 0 || nextOffset < -30) return;
-            sounds.playPop();
-            state.historyDayOffset = nextOffset;
+            state.historyDayOffset = Math.max(0, Math.min(30, state.historyDayOffset - delta));
             renderHistory();
         }
 
         function renderHistory() {
-            const list = document.getElementById('historyList');
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - state.historyDayOffset);
+            const isoDate = formatLocalDateISO(targetDate);
+
             const titleEl = document.getElementById('historyDateTitle');
             const subEl = document.getElementById('historyDateSub');
-            const dayTotalEl = document.getElementById('historyDayTotal');
-            const dayProfitEl = document.getElementById('historyDayProfit');
-            const btnPrev = document.getElementById('btnPrevDay');
-            const btnNext = document.getElementById('btnNextDay');
 
-            // Compute target date based on offset (0 to -30 days)
-            const targetDate = new Date();
-            targetDate.setDate(targetDate.getDate() + state.historyDayOffset);
-            const targetISO = targetDate.toISOString().split('T')[0];
-            const formattedDate = targetDate.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
-            const dict = i18n[currentLang] || i18n.fr;
             if (titleEl) {
-                if (state.historyDayOffset === 0) titleEl.innerText = dict.today;
-                else if (state.historyDayOffset === -1) titleEl.innerText = dict.yesterday;
-                else titleEl.innerText = `${dict.daysAgoPrefix}${Math.abs(state.historyDayOffset)}${dict.daysAgoSuffix}`;
+                if (state.historyDayOffset === 0) titleEl.innerText = i18n[currentLang]?.today || "Aujourd'hui";
+                else if (state.historyDayOffset === 1) titleEl.innerText = i18n[currentLang]?.yesterday || "Hier";
+                else titleEl.innerText = `${i18n[currentLang]?.daysAgoPrefix || 'Il y a '}${state.historyDayOffset}${i18n[currentLang]?.daysAgoSuffix || ' jours'}`;
             }
-            if (subEl) subEl.innerText = formattedDate;
-            if (btnPrev) btnPrev.disabled = state.historyDayOffset <= -30;
-            if (btnNext) btnNext.disabled = state.historyDayOffset >= 0;
+            if (subEl) subEl.innerText = isoDate;
 
-            // Filter transactions matching targetISO (or fallback for legacy transactions on today)
-            const dayTransactions = state.transactions.filter(t => {
-                if (t.isoDate) return t.isoDate === targetISO;
-                return state.historyDayOffset === 0;
-            });
+            const dayTxs = state.transactions.filter(t => t.date === isoDate);
+            const dayTotal = dayTxs.reduce((acc, t) => acc + t.total, 0);
+            const dayProfit = dayTxs.reduce((acc, t) => acc + t.profit, 0);
 
-            const dayTotal = dayTransactions.reduce((acc, t) => acc + t.total, 0);
-            const dayProfit = dayTransactions.reduce((acc, t) => acc + t.profit, 0);
+            const totalEl = document.getElementById('historyDayTotal');
+            const profitEl = document.getElementById('historyDayProfit');
+            if (totalEl) totalEl.innerText = `${dayTotal.toLocaleString()} FCFA`;
+            if (profitEl) profitEl.innerText = `+${dayProfit.toLocaleString()} FCFA`;
 
-            if (dayTotalEl) dayTotalEl.innerText = `${dayTotal.toLocaleString()} FCFA`;
-            if (dayProfitEl) dayProfitEl.innerText = `+${dayProfit.toLocaleString()} FCFA`;
+            const list = document.getElementById('historyList');
+            if (!list) return;
 
-            if (dayTransactions.length === 0) {
-                list.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">${dict.noSalesDayMsg}</p>`;
+            if (dayTxs.length === 0) {
+                list.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">${i18n[currentLang]?.noSalesDayMsg || 'Aucune vente enregistrée.'}</div>`;
                 return;
             }
 
-            list.innerHTML = dayTransactions.map(t => `
-                <div class="bg-slate-800 border border-slate-700/60 rounded-xl p-3 space-y-1">
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold text-slate-200">${t.date}</span>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${t.type === 'Crédit' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}">${t.type === 'Crédit' ? dict.typeCredit : dict.typeCash} ${t.customer ? `(${t.customer})` : ''}</span>
+            list.innerHTML = dayTxs.map(t => `
+                <div class="bg-slate-800/70 border border-slate-700/70 rounded-xl p-2.5 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-white">${t.timestamp}</span>
+                        <span class="text-[10px] text-slate-400 ml-2">(${t.items.length} art.)</span>
+                        <p class="text-[10px] text-slate-400 mt-0.5">${t.type === 'cash' ? (i18n[currentLang]?.typeCash || 'Comptant') : (i18n[currentLang]?.typeCredit || 'Crédit')} - ${t.customer}</p>
                     </div>
-                    <div class="text-[11px] text-slate-400">
-                        ${t.items.map(i => `${i.name} (x${i.qty})`).join(', ')}
-                    </div>
-                    <div class="flex justify-between items-center pt-1 border-t border-slate-700/50">
-                        <span class="text-emerald-400 font-bold">+${t.profit.toLocaleString()} F ${dict.profitTag}</span>
-                        <span class="font-black text-amber-400">${t.total.toLocaleString()} FCFA</span>
+                    <div class="text-right">
+                        <span class="font-black text-amber-400 block">${t.total.toLocaleString()} F</span>
+                        <span class="text-[10px] font-bold text-emerald-400">+${t.profit.toLocaleString()} F</span>
                     </div>
                 </div>
             `).join('');
         }
 
-        function updateLevelUI() {
-            const badge = document.getElementById('shopLevelBadge');
-            if (badge) badge.innerText = `Niv. ${state.shopLevel}`;
-        }
-
-        function updateKPIs(animate = true) {
-            const totalCA = state.transactions.reduce((acc, t) => acc + t.total, 0);
-            const totalProfit = state.transactions.reduce((acc, t) => acc + t.profit, 0);
-
-            // Calcul du bénéfice réalisé aujourd'hui
-            const todayISO = getTodayISO();
-            const todayProfit = state.transactions
-                .filter(t => (t.isoDate || todayISO) === todayISO)
-                .reduce((acc, t) => acc + t.profit, 0);
-
-            const caEl = document.getElementById('kpiCa');
-            const profitEl = document.getElementById('kpiBenefit');
-
-            if (animate) {
-                animateNumber(caEl, state.displayedCA, totalCA, 450, ' FCFA');
-                animateNumber(profitEl, state.displayedProfit, totalProfit, 450, ' FCFA');
-            } else {
-                caEl.innerText = `${totalCA.toLocaleString()} FCFA`;
-                profitEl.innerText = `${totalProfit.toLocaleString()} FCFA`;
-            }
-
-            state.displayedCA = totalCA;
-            state.displayedProfit = totalProfit;
-
-            // Mise à jour de la barre de progression du cycle et des objectifs
-            const progressBar = document.getElementById('cycleProgressBar');
-            const progressLabel = document.getElementById('goalProgressLabel');
-            const dailyMiniStatus = document.getElementById('dailyGoalMiniStatus');
-
-            if (progressBar) {
-                const pct = state.cycleGoal > 0 ? Math.min(100, Math.round((totalProfit / state.cycleGoal) * 100)) : 0;
-                progressBar.style.width = `${pct}%`;
-            }
-            const dict = i18n[currentLang] || i18n.fr;
-            if (progressLabel) {
-                progressLabel.innerText = `${dict.cycleLabel} : ${totalProfit.toLocaleString()} / ${state.cycleGoal.toLocaleString()} F`;
-            }
-            if (dailyMiniStatus) {
-                dailyMiniStatus.innerText = `${dict.dayLabel} : ${todayProfit.toLocaleString()} / ${state.dailyProfitGoal.toLocaleString()} F`;
-            }
-            if (dailyMiniStatus) {
-                dailyMiniStatus.innerText = `Jour : ${todayProfit.toLocaleString()} / ${state.dailyProfitGoal.toLocaleString()} F`;
-            }
-
-            // 1. Animation inévitable lorsque le bénéfice du JOUR est atteint
-            let triggeredDailyVictory = false;
-            if (animate && todayProfit >= state.dailyProfitGoal && state.dailyProfitGoal > 0 && state.dailyGoalCelebratedDate !== todayISO) {
-                state.dailyGoalCelebratedDate = todayISO;
-                state.dailyStreak += 1;
-                localStorage.setItem('boutik_daily_goal_date', todayISO);
-                localStorage.setItem('boutik_daily_streak', state.dailyStreak);
-                sounds.playDailyGoalFanfare();
-                triggerDailyGoalAnimation(todayProfit);
-                triggeredDailyVictory = true;
-            }
-
-            // 2. Animation & Montée de Niveau lorsque le bénéfice du CYCLE est atteint
-            if (animate && totalProfit >= state.cycleGoal && state.cycleGoal > 0 && !state.goalCelebrated) {
-                state.goalCelebrated = true;
-                state.shopLevel += 1;
-                localStorage.setItem('boutik_goal_celebrated', 'true');
-                localStorage.setItem('boutik_shop_level', state.shopLevel);
-                updateLevelUI();
-
-                const rankTitle = SHOP_RANKS[Math.min(state.shopLevel - 1, SHOP_RANKS.length - 1)];
-                document.getElementById('modalNewLevelBadge').innerText = `NIV. ${state.shopLevel}`;
-                document.getElementById('newRankTitle').innerText = rankTitle;
-                document.getElementById('goalReachedSummary').innerText = `Incroyable ! Vous avez atteint ${totalProfit.toLocaleString()} FCFA de bénéfice sur le cycle et vous passez au Niveau ${state.shopLevel} !`;
-
-                if (triggeredDailyVictory) {
-                    // Enchaîner la montée de niveau juste après que le boutiquier a cliqué sur "Encaisser ma victoire !"
-                    state.pendingLevelUpModal = true;
-                } else {
-                    sounds.playLevelUpFanfare();
-                    triggerLevelUpFireworks();
-                    openModal('goalReachedModal');
-                }
-            }
-        }
-
-        function updateLiveMarginPreview() {
-            const buy = parseInt(document.getElementById('prodBuyPrice').value) || 0;
-            const sell = parseInt(document.getElementById('prodSellPrice').value) || 0;
-            const margin = sell - buy;
-            const el = document.getElementById('liveMarginPreview');
-            if (!el) return;
-            if (margin >= 0) {
-                el.className = 'font-black text-emerald-400';
-                el.innerText = `+${margin.toLocaleString()} FCFA`;
-            } else {
-                el.className = 'font-black text-red-400';
-                el.innerText = `${margin.toLocaleString()} FCFA (Perte)`;
-            }
-        }
-
-        function toggleDeleteMode() {
-            state.deleteMode = !state.deleteMode;
-            const btn = document.getElementById('btnToggleDelete');
-            if (btn) {
-                if (state.deleteMode) {
-                    btn.classList.add('bg-red-600', 'text-white', 'border-red-400');
-                    btn.classList.remove('bg-slate-800', 'text-slate-300');
-                } else {
-                    btn.classList.remove('bg-red-600', 'text-white', 'border-red-400');
-                    btn.classList.add('bg-slate-800', 'text-slate-300');
-                }
-            }
-            sounds.playPop();
-            renderProducts();
-        }
-
-        function toggleAudio() {
-            sounds.enabled = !sounds.enabled;
-            localStorage.setItem('boutik_audio', sounds.enabled);
-            updateAudioUI();
-            if (sounds.enabled) {
-                sounds.init();
-                sounds.startBackgroundMusic();
-                sounds.playPop();
-            } else {
-                sounds.stopBackgroundMusic();
-            }
-        }
-
-        function toggleFullScreen() {
-            const docEl = document.documentElement;
-            const icon = document.getElementById('fullscreenIcon');
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                if (docEl.requestFullscreen) docEl.requestFullscreen();
-                else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
-                if (icon) icon.className = 'fa-solid fa-compress text-xs text-amber-400';
-            } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                if (icon) icon.className = 'fa-solid fa-expand text-xs';
-            }
-        }
-
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            if (!modal) return;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (!modal) return;
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function selectCycleDuration(days) {
-            state.cycleDays = days;
-            [7, 14, 30].forEach(d => {
-                const btn = document.getElementById(`cycleBtn${d}`);
-                if (d === days) {
-                    btn.className = "py-2.5 rounded-xl border border-amber-500 bg-amber-500 text-slate-950 font-extrabold text-center transition";
-                } else {
-                    btn.className = "py-2.5 rounded-xl border border-slate-700 bg-slate-800 font-bold text-center transition";
-                }
-            });
-            updateCalculatedCycleGoal();
-        }
-
-        function updateCalculatedCycleGoal() {
-            const dailyInput = document.getElementById('dailyProfitGoalInput');
-            const previewEl = document.getElementById('calculatedTotalGoalPreview');
-            if (!dailyInput || !previewEl) return;
-            const dailyVal = parseInt(dailyInput.value) || 0;
-            const totalCycleGoal = dailyVal * state.cycleDays;
-            previewEl.innerText = `${totalCycleGoal.toLocaleString()} FCFA`;
-        }
-
-        function handleSaveCycleConfig(e) {
-            e.preventDefault();
-            const dailyVal = parseInt(document.getElementById('dailyProfitGoalInput').value) || 5000;
-            state.dailyProfitGoal = dailyVal;
-            state.cycleGoal = dailyVal * state.cycleDays;
-            state.isConfigured = true;
-            state.goalCelebrated = false;
-
-            localStorage.setItem('boutik_cycle_days', state.cycleDays);
-            localStorage.setItem('boutik_daily_profit_goal', state.dailyProfitGoal);
-            localStorage.setItem('boutik_cycle_goal', state.cycleGoal);
-            localStorage.setItem('boutik_cycle_configured', 'true');
-            localStorage.setItem('boutik_goal_celebrated', 'false');
-
-            document.getElementById('btnCloseCycleModal').classList.remove('hidden');
-            document.getElementById('btnResetCycle').classList.remove('hidden');
-
-            sounds.playPop();
-            closeModal('cycleModal');
-            updateKPIs(true);
-        }
-
-        function increaseDailyProfitGoal() {
-            state.dailyProfitGoal += 2000;
-            state.cycleGoal = state.dailyProfitGoal * state.cycleDays;
-            state.goalCelebrated = false;
-            localStorage.setItem('boutik_daily_profit_goal', state.dailyProfitGoal);
-            localStorage.setItem('boutik_cycle_goal', state.cycleGoal);
-            localStorage.setItem('boutik_goal_celebrated', 'false');
-            const dailyInput = document.getElementById('dailyProfitGoalInput');
-            if (dailyInput) dailyInput.value = state.dailyProfitGoal;
-            updateCalculatedCycleGoal();
-            closeModal('goalReachedModal');
-            updateKPIs(true);
-        }
-
-        function resetCycle() {
-            state.transactions = [];
-            state.goalCelebrated = false;
-            localStorage.setItem('boutik_tx', JSON.stringify([]));
-            localStorage.setItem('boutik_goal_celebrated', 'false');
-            closeModal('cycleModal');
-            updateKPIs(true);
-            renderHistory();
-        }
-
-        // Initialize App on DOM ready
-        window.onload = initApp;
+        /* --------------------------------------------------
+         * 5. APPLICATION BOOTSTRAP ON LOAD
+         * -------------------------------------------------- */
+        window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>

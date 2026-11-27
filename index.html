@@ -48,6 +48,7 @@
             font-family: 'Inter', sans-serif;
             user-select: none;
             -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
@@ -117,7 +118,23 @@
         .animate-flame {
             animation: flameBounce 1s infinite ease-in-out;
         }
-        /* Marges de sécurité pour l'installation sur l'écran d'accueil (encoche / barre d'état) */
+        @keyframes holdFill {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .hold-progress-active {
+            animation: holdFill 2.65s linear forwards;
+        }
+        @keyframes holdCardShake {
+            0%, 100% { transform: scale(0.95) rotate(0deg); }
+            25% { transform: scale(0.94) rotate(-1.5deg); }
+            75% { transform: scale(0.94) rotate(1.5deg); }
+        }
+        .animate-hold-pulse {
+            animation: holdCardShake 0.35s infinite ease-in-out;
+            border-color: #F59E0B !important;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.65);
+        }
         .safe-header {
             padding-top: calc(0.45rem + env(safe-area-inset-top, 0px));
         }
@@ -125,25 +142,170 @@
             padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
         }
     </style>
+    <!-- PostHog Analytics (Offline-First & Non-Blocking) -->
+    <script>
+        (function() {
+            const PH_KEY = 'phc_xHmmLFMiS6r3SPSxTDDVsygsRTUwwbY3GvafdsNGFgb7';
+            const PH_HOST = 'https://us.i.posthog.com';
+            const QUEUE_STORAGE_KEY = 'boutik_ph_offline_queue';
+            let phInitialized = false;
+
+            function loadOfflineQueue() {
+                try {
+                    const raw = localStorage.getItem(QUEUE_STORAGE_KEY);
+                    const parsed = raw ? JSON.parse(raw) : [];
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function saveOfflineQueue(queue) {
+                try {
+                    localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue.slice(-300)));
+                } catch (e) {}
+            }
+
+            function initPostHogSDK() {
+                if (phInitialized || !navigator.onLine) return;
+                try {
+                    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.onerror=function(){},p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once unregister identify reset".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+                    window.posthog.init(PH_KEY, {
+                        api_host: PH_HOST,
+                        person_profiles: 'identified_only',
+                        loaded: function() {
+                            flushOfflineAnalyticsQueue();
+                        }
+                    });
+                    phInitialized = true;
+                } catch (e) {}
+            }
+
+            window.flushOfflineAnalyticsQueue = function() {
+                if (!navigator.onLine) return;
+                if (!phInitialized) {
+                    initPostHogSDK();
+                }
+                if (!window.posthog || typeof window.posthog.capture !== 'function') return;
+                const queue = loadOfflineQueue();
+                if (queue.length === 0) return;
+
+                try {
+                    localStorage.removeItem(QUEUE_STORAGE_KEY);
+                } catch (e) {}
+
+                queue.forEach(item => {
+                    try {
+                        window.posthog.capture(item.event, {
+                            ...item.properties,
+                            timestamp: item.timestamp,
+                            synced_from_offline: true
+                        });
+                    } catch (e) {}
+                });
+            };
+
+            window.safeTrackEvent = function(eventName, properties = {}) {
+                try {
+                    const payload = {
+                        ...properties,
+                        offline_recorded_at: new Date().toISOString()
+                    };
+                    if (navigator.onLine) {
+                        if (!phInitialized) initPostHogSDK();
+                        if (window.posthog && typeof window.posthog.capture === 'function') {
+                            window.posthog.capture(eventName, payload);
+                            return;
+                        }
+                    }
+                    // Hors ligne ou SDK indisponible : stockage en file d'attente locale
+                    const queue = loadOfflineQueue();
+                    queue.push({
+                        event: eventName,
+                        properties: payload,
+                        timestamp: new Date().toISOString()
+                    });
+                    saveOfflineQueue(queue);
+                } catch (e) {}
+            };
+
+            window.addEventListener('online', () => {
+                initPostHogSDK();
+                setTimeout(() => window.flushOfflineAnalyticsQueue(), 1500);
+            });
+
+            if (navigator.onLine) {
+                initPostHogSDK();
+            }
+        })();
+    </script>
 </head>
 <body class="h-[100dvh] w-full flex flex-col overflow-hidden bg-slate-950 text-slate-100">
 
     <!-- Confetti Canvas -->
     <canvas id="confettiCanvas"></canvas>
 
+    <!-- MODAL 0: Choix du Type de Business (Au lancement) -->
+    <div id="businessTypeModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+        <div class="animate-victory-card bg-slate-900 border-2 border-amber-500/70 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl">
+            <div class="text-center space-y-1">
+                <span class="inline-block px-3 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-black uppercase tracking-widest">
+                    BIENVENUE SUR BOUTIK'GAME
+                </span>
+                <h2 data-i18n="chooseBusinessTitle" class="text-lg sm:text-xl font-black text-white">Quel type de commerce gérez-vous ?</h2>
+                <p data-i18n="chooseBusinessSub" class="text-xs text-slate-400">Vos rayons et catégories de produits s'adapteront automatiquement.</p>
+            </div>
+
+            <div class="space-y-2.5">
+                <!-- Option 1: Alimentation / Épicerie -->
+                <button onclick="selectBusinessType('alimentation')" id="bizCard_alimentation" class="w-full p-3.5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 text-left flex items-center gap-3.5 transition active:scale-[0.98] group">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition">
+                        🛒
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 data-i18n="biz_alimentation_title" class="text-sm font-black text-white group-hover:text-amber-400 transition">Alimentation & Épicerie</h3>
+                        <p data-i18n="biz_alimentation_desc" class="text-[11px] text-slate-400 leading-snug mt-0.5">Boissons, céréales, épices, biscuits, hygiène, produits frais...</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-amber-400 text-xs"></i>
+                </button>
+
+                <!-- Option 2: Mode, Chaussures & Parfums -->
+                <button onclick="selectBusinessType('mode')" id="bizCard_mode" class="w-full p-3.5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 text-left flex items-center gap-3.5 transition active:scale-[0.98] group">
+                    <div class="w-12 h-12 rounded-2xl bg-pink-500/15 border border-pink-500/40 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition">
+                        👠
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 data-i18n="biz_mode_title" class="text-sm font-black text-white group-hover:text-amber-400 transition">Mode, Chaussures & Parfums</h3>
+                        <p data-i18n="biz_mode_desc" class="text-[11px] text-slate-400 leading-snug mt-0.5">Chaussures femmes, parfums, sacs, vêtements, bijoux, cosmétiques...</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-amber-400 text-xs"></i>
+                </button>
+
+                <!-- Option 3: Quincaillerie & Outillage -->
+                <button onclick="selectBusinessType('quincaillerie')" id="bizCard_quincaillerie" class="w-full p-3.5 rounded-2xl bg-slate-800/90 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 text-left flex items-center gap-3.5 transition active:scale-[0.98] group">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition">
+                        🛠️
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 data-i18n="biz_quincaillerie_title" class="text-sm font-black text-white group-hover:text-amber-400 transition">Quincaillerie & Dépannage</h3>
+                        <p data-i18n="biz_quincaillerie_desc" class="text-[11px] text-slate-400 leading-snug mt-0.5">Rallonges, peinture, plomberie, cadenas, clous, petit outillage...</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-amber-400 text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Inevitable & Addictive Daily Goal Victory Modal -->
     <div id="dailyGoalModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="animate-victory-card bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/90 border-2 border-emerald-400 rounded-3xl w-full max-w-sm p-6 shadow-[0_0_50px_rgba(16,185,129,0.45)] text-center relative overflow-hidden">
-            <!-- Rayons lumineux en arrière-plan -->
             <div class="absolute -top-20 inset-x-0 h-40 bg-gradient-to-b from-emerald-400/25 to-transparent blur-2xl pointer-events-none"></div>
 
-            <!-- Badge Flamme Série de Victoires -->
             <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[11px] font-black uppercase tracking-wider mb-3">
                 <span class="animate-flame inline-block">🔥</span>
                 <span id="dailyStreakText">SÉRIE : 1 JOUR RÉUSSI</span>
             </div>
 
-            <!-- Trophée Central -->
             <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-400 via-teal-400 to-amber-400 text-slate-950 flex items-center justify-center text-4xl mx-auto shadow-xl shadow-emerald-500/30 border-2 border-white/50 mb-3">
                 🏆
             </div>
@@ -157,21 +319,19 @@
                 Bravo Patron ! Votre caisse tourne à plein régime aujourd'hui.
             </p>
 
-            <!-- Compteur Bénéfice Réalisé -->
             <div class="my-4 bg-slate-950/80 border border-emerald-500/40 rounded-2xl p-3.5 shadow-inner">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Bénéfice Net du Jour</span>
                 <span id="dailyVictoryProfitAmount" class="text-2xl font-black text-emerald-400 block mt-0.5">+5 000 FCFA</span>
                 <span id="dailyVictorySurplus" class="text-[11px] font-bold text-amber-300 mt-1 block">🎯 100% de l'objectif atteint</span>
             </div>
 
-            <!-- Bouton d'action inévitable et gratifiant -->
             <button onclick="claimDailyVictory()" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-emerald-500 to-amber-400 hover:opacity-95 active:scale-95 text-slate-950 text-sm font-black uppercase tracking-wider shadow-lg shadow-emerald-500/30 border-b-4 border-emerald-700 flex items-center justify-center gap-2 transition">
                 <span>💰 Encaisser ma victoire !</span>
             </button>
         </div>
     </div>
 
-    <!-- Header Section (Compact Mobile Ergonomics + Safe Area) -->
+    <!-- Header Section -->
     <header class="safe-header bg-slate-900/95 border-b border-slate-800 px-2.5 pb-1.5 shrink-0 z-30">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-1.5">
             
@@ -180,7 +340,6 @@
                 <div class="w-9 h-9 rounded-xl overflow-hidden shadow-md shadow-amber-500/20 border border-amber-500/40 shrink-0 bg-[#12294d]">
                     <svg id="brandLogoSvg" viewBox="0 0 512 512" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
                         <rect width="512" height="512" rx="108" fill="#12294d"/>
-                        <!-- Frises géométriques africaines dans les 4 coins -->
                         <g stroke="#d97706" stroke-width="8" fill="none" stroke-linejoin="round" stroke-linecap="round">
                             <path d="M0 115 L115 0 M0 155 L155 0"/>
                             <path d="M12 126 L36 126 L36 102 L60 102 L60 78 L84 78 L84 54 L108 54 L108 30 L132 30"/>
@@ -191,40 +350,27 @@
                             <path d="M512 397 L397 512 M512 357 L357 512"/>
                             <path d="M500 386 L476 386 L476 410 L452 410 L452 434 L428 434 L428 458 L404 458 L404 482 L380 482"/>
                         </g>
-                        <!-- Ombre au sol -->
                         <ellipse cx="265" cy="396" rx="175" ry="22" fill="#0b1a33"/>
-                        <!-- Caisse enregistreuse & Panier -->
                         <g stroke="#291509" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
-                            <!-- Tige afficheur client -->
                             <rect x="268" y="192" width="16" height="44" fill="#ea580c"/>
-                            <!-- Écran client -->
                             <rect x="234" y="146" width="84" height="48" rx="10" fill="#fbbf24"/>
                             <rect x="247" y="157" width="58" height="26" rx="5" fill="#10b981"/>
-                            <!-- Corps caisse -->
                             <path d="M124 234 L298 234 L322 326 L102 326 Z" fill="#fbbf24"/>
-                            <!-- Tiroir-caisse -->
                             <path d="M102 326 L322 326 L322 374 C322 384 314 390 304 390 L120 390 C110 390 102 384 102 374 Z" fill="#ea580c"/>
                             <rect x="122" y="341" width="180" height="34" rx="6" fill="#10b981"/>
                             <circle cx="212" cy="358" r="7" fill="#fbbf24"/>
-                            <!-- Clavier -->
                             <path d="M136 250 L224 250 L234 310 L124 310 Z" fill="#fef3c7"/>
                             <path d="M158 250 L150 310 M180 250 L176 310 M202 250 L204 310 M132 270 L227 270 M128 290 L231 290" stroke-width="6"/>
-                            <!-- Touches fonctions -->
                             <rect x="244" y="250" width="44" height="22" rx="4" fill="#10b981" stroke-width="7"/>
                             <rect x="247" y="280" width="45" height="30" rx="4" fill="#ea580c" stroke-width="7"/>
-                            <!-- Rouleau ticket -->
                             <path d="M168 234 L168 184 C168 176 174 170 182 170 L212 170 C220 170 226 176 226 184 L226 234 Z" fill="#fffbeb"/>
                             <path d="M184 188 L210 188 M184 202 L210 202 M184 216 L204 216" stroke-width="6"/>
-                            <!-- Anse du panier -->
                             <path d="M308 302 C308 232 422 232 422 302" fill="none" stroke="#92400e" stroke-width="14"/>
-                            <!-- Articles dans le panier -->
                             <rect x="316" y="268" width="32" height="38" rx="6" fill="#10b981"/>
                             <rect x="352" y="260" width="34" height="46" rx="8" fill="#f97316"/>
                             <rect x="388" y="274" width="26" height="32" rx="5" fill="#ef4444"/>
-                            <!-- Panier tressé -->
                             <path d="M292 302 C292 358 314 390 366 390 C418 390 440 358 440 302 Z" fill="#f59e0b"/>
                             <path d="M294 330 L438 330 M302 358 L430 358 M340 302 L340 387 M392 302 L392 387" stroke-width="6"/>
-                            <!-- Pièces d'or volantes -->
                             <g fill="#fbbf24" stroke="#291509" stroke-width="8">
                                 <ellipse cx="195" cy="128" rx="18" ry="26" transform="rotate(-25 195 128)"/>
                                 <ellipse cx="122" cy="195" rx="22" ry="15" transform="rotate(-15 122 195)"/>
@@ -240,15 +386,16 @@
                         <span id="shopLevelBadge" class="px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-[9px] shrink-0">Niv. 1</span>
                     </h1>
                     <div class="flex items-center gap-1 text-[9px]">
-                        <span id="syncBadge" class="inline-flex items-center px-1 rounded font-semibold bg-emerald-500/10 text-emerald-400">
-                            <span id="syncText">☁️ Local</span>
-                        </span>
+                        <button onclick="openModal('businessTypeModal')" id="businessTypeBadge" class="inline-flex items-center gap-1 px-1.5 rounded font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition truncate">
+                            <span id="businessTypeIcon">🛒</span>
+                            <span id="businessTypeLabel">Épicerie</span>
+                        </button>
                         <span id="currentLangBadge" class="text-slate-400 font-bold uppercase">FR</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Header Action Controls (Compact Icon Pills) -->
+            <!-- Header Action Controls -->
             <div class="flex items-center gap-1 shrink-0">
                 <button id="btnFullscreen" onclick="trackUsage('Plein Écran'); toggleFullScreen()" class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-amber-400 flex items-center justify-center transition" title="Plein Écran">
                     <i id="fullscreenIcon" class="fa-solid fa-expand text-xs"></i>
@@ -286,10 +433,9 @@
         </div>
     </header>
 
-    <!-- KPI Scoreboard Bar (Slim Mobile Strip) -->
+    <!-- KPI Scoreboard Bar -->
     <section class="bg-slate-900/95 border-b border-slate-800 px-2.5 py-1 shrink-0">
         <div class="max-w-7xl mx-auto grid grid-cols-2 gap-1.5">
-            <!-- CA Cycle Card -->
             <div class="bg-slate-800/80 rounded-lg px-2 py-1 border border-slate-700/60 flex items-center justify-between">
                 <div class="min-w-0">
                     <p data-i18n="caCycle" class="text-[8px] font-bold text-slate-400 uppercase leading-none">CA Cycle</p>
@@ -298,7 +444,6 @@
                 <i class="fa-solid fa-coins text-amber-400/80 text-xs shrink-0"></i>
             </div>
 
-            <!-- Profit Card -->
             <div class="bg-slate-800/80 rounded-lg px-2 py-1 border border-slate-700/60 flex items-center justify-between">
                 <div class="min-w-0">
                     <p data-i18n="benefit" class="text-[8px] font-bold text-slate-400 uppercase leading-none">Bénéfice Est.</p>
@@ -308,11 +453,10 @@
             </div>
         </div>
         
-        <!-- Slim Cycle Progress Bar -->
-        <!-- Slim Daily Progress Bar -->
         <div class="max-w-7xl mx-auto mt-1">
             <div class="flex items-center justify-between text-[8px] font-bold mb-0.5">
                 <span id="dailyGoalMiniStatus" class="text-amber-400 truncate">Jour : 0 / 5 000 F (0%)</span>
+                <span data-i18n="holdTip" class="text-slate-400 text-[8px]">Maintenir 3s = Modifier</span>
             </div>
             <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                 <div id="dailyProgressBar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full w-0 transition-all duration-500"></div>
@@ -320,27 +464,16 @@
         </div>
     </section>
 
-    <!-- Fixed Sticky Category Tabs Bar -->
+    <!-- Dynamic Sticky Category Tabs Bar -->
     <nav class="bg-slate-950/95 border-b border-slate-800/80 px-2 py-1.5 shrink-0 z-20">
-        <div class="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto custom-scrollbar text-[11px] font-semibold">
-            <button onclick="filterCategory('all', this)" data-i18n="cat_all" class="cat-btn active px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold transition whitespace-nowrap">✨ Tout</button>
-            <button onclick="filterCategory('epices', this)" data-i18n="cat_epices" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🌶️ Épices</button>
-            <button onclick="filterCategory('boissons', this)" data-i18n="cat_boissons" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🥤 Boissons</button>
-            <button onclick="filterCategory('biscuits', this)" data-i18n="cat_biscuits" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🍪 Biscuits & Bonbons</button>
-            <button onclick="filterCategory('hygiene', this)" data-i18n="cat_hygiene" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🪥 Hygiène</button>
-            <button onclick="filterCategory('menager', this)" data-i18n="cat_menager" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🧹 Produit ménager</button>
-            <button onclick="filterCategory('cereales', this)" data-i18n="cat_cereales" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🌾 Céréales</button>
-            <button onclick="filterCategory('boulangerie', this)" data-i18n="cat_boulangerie" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🥖 Boulangerie</button>
-            <button onclick="filterCategory('telephonie', this)" data-i18n="cat_telephonie" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">📱 Téléphonie</button>
-            <button onclick="filterCategory('frais', this)" data-i18n="cat_frais" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🧀 Produits frais</button>
-            <button onclick="filterCategory('divers', this)" data-i18n="cat_divers" class="cat-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">📦 Divers</button>
+        <div id="categoryNavContainer" class="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto custom-scrollbar text-[11px] font-semibold">
+            <!-- Rendered dynamically according to selected Business Type -->
         </div>
     </nav>
 
-    <!-- Scrollable Product Grid Area (Sized to show at least 9 items at once above fixed dock) -->
+    <!-- Scrollable Product Grid Area -->
     <main class="flex-1 overflow-y-auto px-2 pt-2 pb-36 custom-scrollbar">
         <div class="max-w-7xl mx-auto">
-            <!-- Product Cards Grid (3 cols x 3 rows visible simultaneously on mobile) -->
             <div id="productGrid" class="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
                 <!-- Dynamically rendered product tiles -->
             </div>
@@ -350,12 +483,10 @@
     <!-- Anchored Fixed Bottom Cart Bar & Thumb Action Panel -->
     <footer class="safe-footer fixed bottom-0 inset-x-0 bg-slate-900/98 backdrop-blur-md border-t-2 border-slate-800 px-2.5 pt-2 z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.75)]">
         <div class="max-w-7xl mx-auto space-y-2">
-            <!-- Expandable Cart Items List -->
             <div id="cartDrawerContent" class="hidden max-h-44 overflow-y-auto custom-scrollbar divide-y divide-slate-800 border-b border-slate-800 pb-1.5">
                 <!-- Cart items rendered dynamically -->
             </div>
 
-            <!-- Row 1: Full-Width Cart Summary Strip -->
             <button onclick="toggleCartDrawer()" class="w-full flex items-center justify-between bg-slate-800/90 hover:bg-slate-800 active:scale-[0.99] border border-slate-700 px-3 py-1.5 rounded-xl transition">
                 <div class="flex items-center gap-2">
                     <div class="relative w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
@@ -373,7 +504,6 @@
                 </div>
             </button>
 
-            <!-- Row 2: Large Ergonomic Thumb Action Buttons -->
             <div class="grid grid-cols-5 gap-2">
                 <button onclick="checkout('credit')" class="col-span-2 py-2.5 px-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 active:scale-[0.97] border-2 border-amber-500/50 text-amber-400 text-xs sm:text-sm font-black uppercase tracking-wide flex items-center justify-center gap-1.5 transition">
                     <i class="fa-solid fa-book-open text-xs"></i>
@@ -387,26 +517,27 @@
         </div>
     </footer>
 
-    <!-- MODAL 1: Add / Edit Product (Redesigned Studio Layout) -->
+    <!-- MODAL 1: Add / Edit Product -->
     <div id="addProductModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center z-50 p-3">
         <div class="bg-slate-900 border-2 border-slate-700/80 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative max-h-[92vh] flex flex-col">
-            <!-- Modal Header -->
             <div class="bg-gradient-to-r from-slate-800 to-slate-900 px-5 py-3.5 border-b border-slate-800 flex justify-between items-center shrink-0">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
-                        <i class="fa-solid fa-camera-retro text-sm"></i>
+                        <i id="productModalIcon" class="fa-solid fa-camera-retro text-sm"></i>
                     </div>
                     <div>
-                        <h3 data-i18n="newArticleTitle" class="text-sm font-black text-white tracking-wide">Nouvel Article</h3>
-                        <p data-i18n="newArticleSub" class="text-[10px] text-slate-400">Ajoutez une vignette photo à votre rayon</p>
+                        <h3 id="productModalTitle" data-i18n="newArticleTitle" class="text-sm font-black text-white tracking-wide">Nouvel Article</h3>
+                        <p id="productModalSub" data-i18n="newArticleSub" class="text-[10px] text-slate-400">Ajoutez une vignette photo à votre rayon</p>
                     </div>
                 </div>
-                <button onclick="closeModal('addProductModal')" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                <button onclick="closeProductModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
             
             <form id="formAddProduct" onsubmit="handleSaveProduct(event)" class="p-4 space-y-3.5 overflow-y-auto custom-scrollbar">
+                <input type="hidden" id="editProductId" value="">
+
                 <!-- Interactive Photo Studio Box -->
                 <div onclick="document.getElementById('prodImageInput').click()" class="relative group cursor-pointer rounded-2xl border-2 border-dashed border-amber-500/50 hover:border-amber-400 bg-slate-950/80 p-3 flex items-center gap-3.5 transition">
                     <div class="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-800 border border-slate-700 shrink-0 shadow-md">
@@ -426,26 +557,17 @@
                     <input type="file" id="prodImageInput" accept="image/*" capture="environment" onchange="processProductImage(event)" class="hidden">
                 </div>
 
-                <!-- Product Name & Category -->
+                <!-- Product Name & Dynamic Category -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label data-i18n="prodNameLabel" class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Nom de l'article</label>
-                        <input type="text" id="prodName" placeholder="Ex: Lait Bonnet Rouge" required class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-500">
+                        <input type="text" id="prodName" placeholder="Ex: Sandales dorées" required class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-500">
                     </div>
 
                     <div>
                         <label data-i18n="prodCatLabel" class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">Rayon / Catégorie</label>
                         <select id="prodCategory" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-amber-500">
-                            <option value="epices" data-i18n="cat_epices">🌶️ Épices</option>
-                            <option value="boissons" data-i18n="cat_boissons">🥤 Boissons</option>
-                            <option value="biscuits" data-i18n="cat_biscuits">🍪 Biscuits & Bonbons</option>
-                            <option value="hygiene" data-i18n="cat_hygiene">🪥 Hygiène</option>
-                            <option value="menager" data-i18n="cat_menager">🧹 Produit ménager</option>
-                            <option value="cereales" data-i18n="cat_cereales">🌾 Céréales</option>
-                            <option value="boulangerie" data-i18n="cat_boulangerie">🥖 Boulangerie</option>
-                            <option value="telephonie" data-i18n="cat_telephonie">📱 Téléphonie</option>
-                            <option value="frais" data-i18n="cat_frais">🧀 Produits frais</option>
-                            <option value="divers" data-i18n="cat_divers">📦 Divers</option>
+                            <!-- Dynamically populated according to businessType -->
                         </select>
                     </div>
                 </div>
@@ -455,11 +577,11 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label data-i18n="buyPriceLabel" class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Prix d'Achat (F)</label>
-                            <input type="number" id="prodBuyPrice" min="0" placeholder="300" required oninput="updateLiveMarginPreview()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 focus:outline-none focus:border-amber-500">
+                            <input type="number" id="prodBuyPrice" min="0" placeholder="3000" required oninput="updateLiveMarginPreview()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm font-bold text-slate-200 focus:outline-none focus:border-amber-500">
                         </div>
                         <div>
                             <label data-i18n="sellPriceLabel" class="block text-[10px] font-bold text-amber-400 uppercase mb-1">Prix de Vente (F)</label>
-                            <input type="number" id="prodSellPrice" min="0" placeholder="450" required oninput="updateLiveMarginPreview()" class="w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3 py-2 text-sm font-black text-amber-400 focus:outline-none focus:border-amber-400">
+                            <input type="number" id="prodSellPrice" min="0" placeholder="4500" required oninput="updateLiveMarginPreview()" class="w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3 py-2 text-sm font-black text-amber-400 focus:outline-none focus:border-amber-400">
                         </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-700/60">
@@ -468,10 +590,9 @@
                     </div>
                 </div>
 
-                <!-- Action Footer -->
                 <div class="pt-1 grid grid-cols-2 gap-2.5">
-                    <button type="button" onclick="closeModal('addProductModal')" data-i18n="cancelBtn" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">Annuler</button>
-                    <button type="submit" data-i18n="addToShelfBtn" class="py-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:opacity-95 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg shadow-amber-500/20 transition">
+                    <button type="button" onclick="closeProductModal()" data-i18n="cancelBtn" class="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">Annuler</button>
+                    <button type="submit" id="btnSubmitProduct" data-i18n="addToShelfBtn" class="py-3 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:opacity-95 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg shadow-amber-500/20 transition">
                         ✨ Ajouter au rayon
                     </button>
                 </div>
@@ -499,7 +620,7 @@
         </div>
     </div>
 
-    <!-- MODAL 7: Félicitations Montée de Niveau (Cycle Goal Reached) -->
+    <!-- MODAL 7: Félicitations Montée de Niveau -->
     <div id="goalReachedModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border-2 border-amber-400 rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl text-center relative overflow-hidden">
             <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-amber-400 via-emerald-400 to-amber-400"></div>
@@ -531,7 +652,7 @@
         </div>
     </div>
 
-    <!-- MODAL 3: Credit Book (Carnet de Crédit) -->
+    <!-- MODAL 3: Credit Book -->
     <div id="creditModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl flex flex-col max-h-[85vh]">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
@@ -541,12 +662,11 @@
                 <button onclick="closeModal('creditModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div id="creditList" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                <!-- Rendered credits list -->
             </div>
         </div>
     </div>
 
-    <!-- MODAL 4: Cycle Configuration & Daily Profit Goal (Initial Setup + Settings) -->
+    <!-- MODAL 4: Cycle Configuration & Business Switch -->
     <div id="cycleModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border-2 border-amber-500/70 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -555,8 +675,19 @@
                 </h3>
                 <button id="btnCloseCycleModal" onclick="closeModal('cycleModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
+
+            <!-- Changer le type de commerce -->
+            <div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block">Type de commerce actif</span>
+                    <span id="cycleModalBusinessName" class="text-xs font-black text-amber-400">🛒 Alimentation & Épicerie</span>
+                </div>
+                <button type="button" onclick="closeModal('cycleModal'); openModal('businessTypeModal');" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-amber-500 hover:text-slate-950 text-xs font-bold transition">
+                    Changer
+                </button>
+            </div>
+
             <form onsubmit="handleSaveCycleConfig(event)" class="space-y-4">
-                <!-- Étape 1 : Taille des cycles -->
                 <div>
                     <label data-i18n="cycleStep1" class="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">1. Durée de votre cycle comptable</label>
                     <div class="grid grid-cols-3 gap-2 text-xs">
@@ -566,7 +697,6 @@
                     </div>
                 </div>
 
-                <!-- Étape 2 : Bénéfice souhaité par jour -->
                 <div>
                     <label data-i18n="cycleStep2" class="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">2. Bénéfice souhaité par jour (FCFA)</label>
                     <input type="number" id="dailyProfitGoalInput" value="5000" min="100" required oninput="updateCalculatedCycleGoal()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-base font-black text-white focus:outline-none focus:border-emerald-500">
@@ -584,7 +714,7 @@
         </div>
     </div>
 
-    <!-- MODAL 5: Sales History & Archives (30 Jours) -->
+    <!-- MODAL 5: Sales History & Archives -->
     <div id="historyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-5 space-y-3 shadow-2xl flex flex-col max-h-[88vh]">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
@@ -599,7 +729,6 @@
                 </div>
             </div>
 
-            <!-- Date Navigation Bar (Up to 30 days back) -->
             <div class="bg-slate-800/90 p-2 rounded-xl border border-slate-700 flex items-center justify-between shrink-0">
                 <button onclick="changeHistoryDay(-1)" id="btnPrevDay" class="w-8 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-white flex items-center justify-center transition">
                     <i class="fa-solid fa-chevron-left text-xs"></i>
@@ -613,7 +742,6 @@
                 </button>
             </div>
 
-            <!-- Selected Day KPI Summary -->
             <div class="grid grid-cols-2 gap-2 shrink-0">
                 <div class="bg-slate-800/60 p-2 rounded-xl border border-slate-700/70 text-center">
                     <span data-i18n="daySalesLabel" class="text-[10px] text-slate-400 font-semibold uppercase block">Ventes du jour</span>
@@ -626,7 +754,6 @@
             </div>
 
             <div id="historyList" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1 text-xs">
-                <!-- Rendered history transactions -->
             </div>
         </div>
     </div>
@@ -650,10 +777,81 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        const APP_VERSION = '2.4.0';
+        const APP_VERSION = '2.7.0';
 
         /* --------------------------------------------------
-         * 0. CONTINUOUS ONLINE UPDATE, LOCAL DATE & STORAGE SAFETY
+         * 0. BUSINESS PROFILES & DYNAMIC CATEGORIES CONFIGURATION
+         * -------------------------------------------------- */
+        const BUSINESS_PROFILES = {
+            alimentation: {
+                id: 'alimentation',
+                icon: '🛒',
+                shortName: 'Épicerie',
+                fullName: 'Alimentation & Épicerie',
+                placeholder: 'Ex: Lait Bonnet Rouge',
+                categories: [
+                    { id: 'epices', label: '🌶️ Épices', i18nKey: 'cat_epices' },
+                    { id: 'boissons', label: '🥤 Boissons', i18nKey: 'cat_boissons' },
+                    { id: 'biscuits', label: '🍪 Biscuits & Bonbons', i18nKey: 'cat_biscuits' },
+                    { id: 'hygiene', label: '🪥 Hygiène', i18nKey: 'cat_hygiene' },
+                    { id: 'menager', label: '🧹 Produit ménager', i18nKey: 'cat_menager' },
+                    { id: 'cereales', label: '🌾 Céréales', i18nKey: 'cat_cereales' },
+                    { id: 'boulangerie', label: '🥖 Boulangerie', i18nKey: 'cat_boulangerie' },
+                    { id: 'telephonie', label: '📱 Téléphonie', i18nKey: 'cat_telephonie' },
+                    { id: 'frais', label: '🧀 Produits frais', i18nKey: 'cat_frais' },
+                    { id: 'divers', label: '📦 Divers', i18nKey: 'cat_divers' }
+                ],
+                defaultProducts: [
+                    { id: '1', name: 'Sucrerie 50cl', category: 'boissons', sellPrice: 400, buyPrice: 300, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&auto=format&fit=crop&q=85' },
+                    { id: '2', name: 'Pain Baguette', category: 'boulangerie', sellPrice: 150, buyPrice: 100, image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=85' }
+                ]
+            },
+            mode: {
+                id: 'mode',
+                icon: '👠',
+                shortName: 'Mode & Beauté',
+                fullName: 'Mode, Chaussures & Parfums',
+                placeholder: 'Ex: Sandales strass dorées',
+                categories: [
+                    { id: 'chaussures', label: '👠 Chaussures', i18nKey: 'cat_mode_chaussures' },
+                    { id: 'parfums', label: '🌸 Parfums & Brumes', i18nKey: 'cat_mode_parfums' },
+                    { id: 'sacs', label: '👜 Sacs & Pochettes', i18nKey: 'cat_mode_sacs' },
+                    { id: 'vetements', label: '👗 Vêtements', i18nKey: 'cat_mode_vetements' },
+                    { id: 'bijoux', label: '💍 Bijoux & Montres', i18nKey: 'cat_mode_bijoux' },
+                    { id: 'cosmetiques', label: '💄 Cosmétiques & Soins', i18nKey: 'cat_mode_cosmetiques' },
+                    { id: 'accessoires', label: '🕶️ Lunettes & Foulards', i18nKey: 'cat_mode_accessoires' },
+                    { id: 'divers', label: '📦 Divers', i18nKey: 'cat_divers' }
+                ],
+                defaultProducts: [
+                    { id: 'm1', name: 'Sandales Femme', category: 'chaussures', sellPrice: 5000, buyPrice: 3200, image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&auto=format&fit=crop&q=85' },
+                    { id: 'm2', name: 'Parfum / Brume', category: 'parfums', sellPrice: 3500, buyPrice: 2000, image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&auto=format&fit=crop&q=85' }
+                ]
+            },
+            quincaillerie: {
+                id: 'quincaillerie',
+                icon: '🛠️',
+                shortName: 'Quincaillerie',
+                fullName: 'Quincaillerie & Dépannage',
+                placeholder: 'Ex: Rallonge 4 prises',
+                categories: [
+                    { id: 'electricite', label: '🔌 Électricité & Rallonges', i18nKey: 'cat_quinc_electricite' },
+                    { id: 'peinture', label: '🎨 Peinture & Pinceaux', i18nKey: 'cat_quinc_peinture' },
+                    { id: 'plomberie', label: '🚰 Plomberie & Tuyaux', i18nKey: 'cat_quinc_plomberie' },
+                    { id: 'serrurerie', label: '🔒 Cadenas & Serrures', i18nKey: 'cat_quinc_serrurerie' },
+                    { id: 'visserie', label: '🔩 Clous, Vis & Colle', i18nKey: 'cat_quinc_visserie' },
+                    { id: 'outillage', label: '🔨 Petit Outillage', i18nKey: 'cat_quinc_outillage' },
+                    { id: 'maconnerie', label: '🧱 Maçonnerie', i18nKey: 'cat_quinc_maconnerie' },
+                    { id: 'divers', label: '📦 Divers', i18nKey: 'cat_divers' }
+                ],
+                defaultProducts: [
+                    { id: 'q1', name: 'Rallonge Multiprise', category: 'electricite', sellPrice: 2500, buyPrice: 1700, image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&auto=format&fit=crop&q=85' },
+                    { id: 'q2', name: 'Pot Peinture 1kg', category: 'peinture', sellPrice: 2000, buyPrice: 1400, image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&auto=format&fit=crop&q=85' }
+                ]
+            }
+        };
+
+        /* --------------------------------------------------
+         * STORAGE & DATE HELPERS
          * -------------------------------------------------- */
         function safeJSONParse(key, fallback) {
             try {
@@ -662,7 +860,6 @@
                 const parsed = JSON.parse(raw);
                 return parsed !== null && parsed !== undefined ? parsed : fallback;
             } catch (e) {
-                console.warn('Données JSON corrompues récupérées pour ' + key, e);
                 return fallback;
             }
         }
@@ -672,7 +869,6 @@
                 localStorage.setItem(key, value);
                 return true;
             } catch (e) {
-                console.warn('Erreur sauvegarde localStorage pour ' + key, e);
                 return false;
             }
         }
@@ -689,7 +885,7 @@
         }
 
         /* --------------------------------------------------
-         * INDEXEDDB PHOTO VAULT (OFFLINE UNLIMITED STORAGE)
+         * INDEXEDDB PHOTO VAULT
          * -------------------------------------------------- */
         const ImageVault = {
             dbName: 'BoutikGameDB',
@@ -756,7 +952,6 @@
         function saveProductsSafely() {
             const fullSerialized = JSON.stringify(state.products);
             if (!safeStorageSet('boutik_products', fullSerialized)) {
-                // Si localStorage atteint 5 Mo, décharger les images base64 vers IndexedDB
                 const lightProducts = state.products.map(p => {
                     if (p.image && p.image.startsWith('data:image')) {
                         ImageVault.saveImage(p.id, p.image);
@@ -771,7 +966,6 @@
         function saveTransactionsSafely() {
             const serialized = JSON.stringify(state.transactions);
             if (!safeStorageSet('boutik_tx', serialized)) {
-                // En cas de dépassement de quota (QuotaExceededError), conserver les 200 plus récentes
                 state.transactions = state.transactions.slice(0, 200);
                 safeStorageSet('boutik_tx', JSON.stringify(state.transactions));
             }
@@ -787,6 +981,7 @@
                     safeStorageSet('boutik_cycle_days', String(state.cycleDays));
                     safeStorageSet('boutik_daily_profit_goal', String(state.dailyProfitGoal));
                     safeStorageSet('boutik_cycle_configured', String(state.isConfigured));
+                    safeStorageSet('boutik_business_type', String(state.businessType || ''));
                     safeStorageSet('boutik_daily_streak', String(state.dailyStreak));
                     safeStorageSet('boutik_daily_goal_date', String(state.dailyGoalCelebratedDate));
                     safeStorageSet('boutik_goal_celebrated', String(state.goalCelebrated));
@@ -804,11 +999,8 @@
                 const match = htmlText.match(/const\s+APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
                 if (match && match[1] && match[1] !== APP_VERSION) {
                     const remoteVersion = match[1];
-                    // Anti-boucle : ne pas recharger plusieurs fois pour la même version dans la session
                     try {
-                        if (sessionStorage.getItem('boutik_attempted_version') === remoteVersion) {
-                            return;
-                        }
+                        if (sessionStorage.getItem('boutik_attempted_version') === remoteVersion) return;
                         sessionStorage.setItem('boutik_attempted_version', remoteVersion);
                     } catch (e) {}
 
@@ -821,16 +1013,24 @@
                     }
                     window.location.replace(window.location.origin + window.location.pathname + '?v=' + encodeURIComponent(remoteVersion));
                 }
-            } catch (e) {
-                // Mode hors-ligne ou erreur réseau ignorée silencieusement
-            }
+            } catch (e) {}
         }
 
         /* --------------------------------------------------
-         * 1. MULTILINGUAL I18N DICTIONARY (COMPLETE COVERAGE)
+         * 1. MULTILINGUAL I18N DICTIONARY
          * -------------------------------------------------- */
         const i18n = {
             fr: {
+                chooseBusinessTitle: "Quel type de commerce gérez-vous ?",
+                chooseBusinessSub: "Vos rayons et catégories de produits s'adapteront automatiquement.",
+                biz_alimentation_title: "Alimentation & Épicerie",
+                biz_alimentation_desc: "Boissons, céréales, épices, biscuits, hygiène, produits frais...",
+                biz_mode_title: "Mode, Chaussures & Parfums",
+                biz_mode_desc: "Chaussures femmes, parfums, sacs, vêtements, bijoux, cosmétiques...",
+                biz_quincaillerie_title: "Quincaillerie & Dépannage",
+                biz_quincaillerie_desc: "Rallonges, peinture, plomberie, cadenas, clous, petit outillage...",
+                holdTip: "Maintenir 3s = Modifier",
+                holdingBadge: "✏️ Maintenir...",
                 caCycle: "CA Cycle", benefit: "Bénéfice Est.", total: "Total Panier", viewDetail: "Voir le détail",
                 payCash: "Encaisser", payCredit: "Crédit", addProduct: "Ajouter", addPhotoSub: "+ Photo",
                 emptyCart: "Votre panier est vide", cycleLabel: "Cycle", dayLabel: "Jour",
@@ -838,7 +1038,17 @@
                 cat_biscuits: "🍪 Biscuits & Bonbons", cat_hygiene: "🪥 Hygiène", cat_menager: "🧹 Produit ménager",
                 cat_cereales: "🌾 Céréales", cat_boulangerie: "🥖 Boulangerie", cat_telephonie: "📱 Téléphonie",
                 cat_frais: "🧀 Produits frais", cat_divers: "📦 Divers",
+                cat_mode_chaussures: "👠 Chaussures", cat_mode_parfums: "🌸 Parfums & Brumes",
+                cat_mode_sacs: "👜 Sacs & Pochettes", cat_mode_vetements: "👗 Vêtements",
+                cat_mode_bijoux: "💍 Bijoux & Montres", cat_mode_cosmetiques: "💄 Cosmétiques & Soins",
+                cat_mode_accessoires: "🕶️ Lunettes & Foulards",
+                cat_quinc_electricite: "🔌 Électricité & Rallonges", cat_quinc_peinture: "🎨 Peinture & Pinceaux",
+                cat_quinc_plomberie: "🚰 Plomberie & Tuyaux", cat_quinc_serrurerie: "🔒 Cadenas & Serrures",
+                cat_quinc_visserie: "🔩 Clous, Vis & Colle", cat_quinc_outillage: "🔨 Petit Outillage",
+                cat_quinc_maconnerie: "🧱 Maçonnerie",
                 newArticleTitle: "Nouvel Article", newArticleSub: "Ajoutez une vignette photo à votre rayon",
+                editArticleTitle: "Modifier l'Article", editArticleSub: "Changez le nom, le rayon, le prix ou la photo",
+                saveChangesBtn: "✅ Enregistrer",
                 takePhotoBtn: "📸 Prendre / Choisir Photo", takePhotoDesc: "Touchez ici pour ouvrir la caméra ou la galerie.",
                 prodNameLabel: "Nom de l'article", prodCatLabel: "Rayon / Catégorie",
                 buyPriceLabel: "Prix d'Achat (F)", sellPriceLabel: "Prix de Vente (F)",
@@ -854,9 +1064,19 @@
                 daySalesLabel: "Ventes du jour", dayProfitLabel: "Bénéfice du jour",
                 noSalesDayMsg: "Aucune vente enregistrée pour cette journée.", profitTag: "bénéfice",
                 addCreditTitle: "Inscrire au Carnet de Crédit", customerNameLabel: "Nom du Client / Surnom",
-                validateCreditBtn: "Valider Crédit", typeCash: "Comptant", typeCredit: "Crédit"
+                validateCreditBtn: "Valider Crédit", typeCash: "Comptant", typeCredit: "Crédit réglé"
             },
             bm: {
+                chooseBusinessTitle: "I bɛ jago jumɛn kɛ?",
+                chooseBusinessSub: "I ka fɛnw suguya bɛna labɛn ka kɛɲɛ ni i ka baara ye.",
+                biz_alimentation_title: "Dumuni & Bitiki",
+                biz_alimentation_desc: "Minfɛnw, sumaw, namakɔrɔ, bisiki, saniya fɛnw...",
+                biz_mode_title: "Fani, Samara & Wusulan",
+                biz_mode_desc: "Muso samara, wusulan, sakiw, faniw, masiri fɛnw...",
+                biz_quincaillerie_title: "Kinkayeri & Baara minɛnw",
+                biz_quincaillerie_desc: "Kuran juruw, pɛntiri, tiyow, kadana, nɛgɛw...",
+                holdTip: "A digi segɔndi 3 = A yɛlɛma",
+                holdingBadge: "✏️ A minɛ...",
                 caCycle: "Wari Caman", benefit: "Tɔnɔ", total: "Sarki Bɛɛ", viewDetail: "A kɔnɔna filɛ",
                 payCash: "Wari Minɛ", payCredit: "Juru La", addProduct: "Fɛn Kura", addPhotoSub: "+ Ja",
                 emptyCart: "Sarki lala", cycleLabel: "Waati", dayLabel: "Tile",
@@ -864,7 +1084,17 @@
                 cat_biscuits: "🍪 Bisiki & Bonbon", cat_hygiene: "🪥 Saniya", cat_menager: "🧹 So kɔnɔ fɛn",
                 cat_cereales: "🌾 Sumaw", cat_boulangerie: "🥖 Buru", cat_telephonie: "📱 Telefɔni",
                 cat_frais: "🧀 Fɛn kɛnɛ", cat_divers: "📦 Fɛn wɛrɛw",
+                cat_mode_chaussures: "👠 Samara", cat_mode_parfums: "🌸 Wusulan / Parfɛn",
+                cat_mode_sacs: "👜 Sakiw", cat_mode_vetements: "👗 Faniw",
+                cat_mode_bijoux: "💍 Masiri & Monturu", cat_mode_cosmetiques: "💄 Tulukɛnɛ & Kɔsɛmɛtiki",
+                cat_mode_accessoires: "🕶️ Lunɛti & Disiw",
+                cat_quinc_electricite: "🔌 Kuran fɛnw", cat_quinc_peinture: "🎨 Pɛntiri",
+                cat_quinc_plomberie: "🚰 Ji tiyow", cat_quinc_serrurerie: "🔒 Kadana & Kɛlɛ",
+                cat_quinc_visserie: "🔩 Nɛgɛw & Kɔli", cat_quinc_outillage: "🔨 Baara minɛnw",
+                cat_quinc_maconnerie: "🧱 Masɔn baara",
                 newArticleTitle: "Fɛn Kura", newArticleSub: "Ja dɔ fara i ka fɛnw kan",
+                editArticleTitle: "Fɛn Yɛlɛma", editArticleSub: "A tɔgɔ, a suguya walima a sɔngɔ yɛlɛma",
+                saveChangesBtn: "✅ A mara",
                 takePhotoBtn: "📸 Ja Ta / Sugandi", takePhotoDesc: "Digi yan ka ja ta ni kamera ye.",
                 prodNameLabel: "Fɛn tɔgɔ", prodCatLabel: "Fɛn suguya",
                 buyPriceLabel: "Sannikɛ sɔngɔ (F)", sellPriceLabel: "Feerekɛ sɔngɔ (F)",
@@ -880,9 +1110,19 @@
                 daySalesLabel: "Bi feere", dayProfitLabel: "Bi tɔnɔ",
                 noSalesDayMsg: "Feere si ma kɛ nin tile la.", profitTag: "tɔnɔ",
                 addCreditTitle: "Juru Sɛbɛn Gafe La", customerNameLabel: "Sannikɛla tɔgɔ",
-                validateCreditBtn: "Juru Sɛbɛn", typeCash: "Wari jɛlen", typeCredit: "Juru"
+                validateCreditBtn: "Juru Sɛbɛn", typeCash: "Wari jɛlen", typeCredit: "Juru sara"
             },
             mos: {
+                chooseBusinessTitle: "Yãmb maanda koosgo bʋgo?",
+                chooseBusinessSub: "Yãmb teedo buud na n manegame.",
+                biz_alimentation_title: "Rɩɩbo & Bitik",
+                biz_alimentation_desc: "Yũumdo, koodo, zẽedo, bisiki, yɩɩlem teedo...",
+                biz_mode_title: "Fugdu, Neooda & Tɩ-noodo",
+                biz_mode_desc: "Pagb neooda, tɩ-noodo, saki, fugdu, nag-teedo...",
+                biz_quincaillerie_title: "Kinkayeri & Tʋʋm teedo",
+                biz_quincaillerie_desc: "Kʋrã wĩiri, pɛntiri, koom tiyo, kadana, kʋt-bila...",
+                holdTip: "Sɩɩg-y segɔnd 3 = Teke",
+                holdingBadge: "✏️ Gũus-y...",
                 caCycle: "Ligdi Fâa", benefit: "Tɔɔne", total: "Pani Fâa", viewDetail: "Gese fâa",
                 payCash: "Ligdi Deege", payCredit: "Sàmde", addProduct: "Paase", addPhotoSub: "+ Foto",
                 emptyCart: "Pani pãka", cycleLabel: "Wakato", dayLabel: "Daar",
@@ -890,7 +1130,17 @@
                 cat_biscuits: "🍪 Bisiki", cat_hygiene: "🪥 Yɩɩlem", cat_menager: "🧹 Zak teedo",
                 cat_cereales: "🌾 Koodo", cat_boulangerie: "🥖 Buru", cat_telephonie: "📱 Telefɔn",
                 cat_frais: "🧀 Teed maasga", cat_divers: "📦 Teed a taaba",
+                cat_mode_chaussures: "👠 Neooda", cat_mode_parfums: "🌸 Tɩ-noodo / Parfɛn",
+                cat_mode_sacs: "👜 Saki", cat_mode_vetements: "👗 Fugdu",
+                cat_mode_bijoux: "💍 Nag-teedo", cat_mode_cosmetiques: "💄 Kaam & Kɔsɛmɛtiki",
+                cat_mode_accessoires: "🕶️ Lunɛt & Fulaar",
+                cat_quinc_electricite: "🔌 Kʋrã teedo", cat_quinc_peinture: "🎨 Pɛntiri",
+                cat_quinc_plomberie: "🚰 Koom tiyo", cat_quinc_serrurerie: "🔒 Kadana",
+                cat_quinc_visserie: "🔩 Kʋt-bila & Kɔl", cat_quinc_outillage: "🔨 Tʋʋm teedo",
+                cat_quinc_maconnerie: "🧱 Masɔn teedo",
                 newArticleTitle: "Teed Paalga", newArticleSub: "Paas-y foto y teedo sʋka",
+                editArticleTitle: "Tek Teedo", editArticleSub: "Tek-y yʋʋre, buudu bɩ ligdi",
+                saveChangesBtn: "✅ Bĩng-y",
                 takePhotoBtn: "📸 Yik Foto", takePhotoDesc: "Sɩɩg-y ka n yik foto ne kamera.",
                 prodNameLabel: "Teedo yʋʋre", prodCatLabel: "Teedo buudu",
                 buyPriceLabel: "Daabo ligdi (F)", sellPriceLabel: "Koosgo ligdi (F)",
@@ -906,9 +1156,19 @@
                 daySalesLabel: "Rũndã koosgo", dayProfitLabel: "Rũndã tɔɔne",
                 noSalesDayMsg: "Koosgo ka zĩnd daar kãnga ye.", profitTag: "tɔɔne",
                 addCreditTitle: "Gʋls Sàm-gõorẽ", customerNameLabel: "Neda yʋʋre",
-                validateCreditBtn: "Sègle Sàmde", typeCash: "Ligdi", typeCredit: "Sàmde"
+                validateCreditBtn: "Sègle Sàmde", typeCash: "Ligdi", typeCredit: "Sàmde yaoodame"
             },
             wo: {
+                chooseBusinessTitle: "Ban xeetu jaay ngay def?",
+                chooseBusinessSub: "Sa xeeti bagas dinañu ko waajal ci sa liggéey.",
+                biz_alimentation_title: "Lekk ak Bitik",
+                biz_alimentation_desc: "Naan, dugub, saf-safal, biskwit, setal...",
+                biz_mode_title: "Yére, Dàll ak Latkoloñ",
+                biz_mode_desc: "Dàllu jigéen, latkoloñ, saaku, yére, takkaay...",
+                biz_quincaillerie_title: "Kinkayeri ak Jumtukaay",
+                biz_quincaillerie_desc: "Ralonj, pentiir, tiyoo ndox, kadnaa, pont...",
+                holdTip: "Tëye 3s = Soppi",
+                holdingBadge: "✏️ Tëye ko...",
                 caCycle: "Xaalis Bép", benefit: "Njariñ", total: "Sakeu Bi", viewDetail: "Xool li ci biir",
                 payCash: "Jap Xaalis", payCredit: "Leb", addProduct: "Yokk", addPhotoSub: "+ Nataal",
                 emptyCart: "Sakeu bi dara nekkul", cycleLabel: "Jamono", dayLabel: "Bes",
@@ -916,7 +1176,17 @@
                 cat_biscuits: "🍪 Biskwit & Bonbon", cat_hygiene: "🪥 Setal", cat_menager: "🧹 Liggéeyu kër",
                 cat_cereales: "🌾 Dugub ak Ceeb", cat_boulangerie: "🥖 Mburu", cat_telephonie: "📱 Telefon",
                 cat_frais: "🧀 Luy yees", cat_divers: "📦 Yeneen",
+                cat_mode_chaussures: "👠 Dàll yi", cat_mode_parfums: "🌸 Latkoloñ / Parfë",
+                cat_mode_sacs: "👜 Saaku yi", cat_mode_vetements: "👗 Yére yi",
+                cat_mode_bijoux: "💍 Takkaay & Montar", cat_mode_cosmetiques: "💄 Diw ak Kosmetik",
+                cat_mode_accessoires: "🕶️ Lunet ak Musoor",
+                cat_quinc_electricite: "🔌 Kuraŋ & Ralonj", cat_quinc_peinture: "🎨 Pentiir",
+                cat_quinc_plomberie: "🚰 Tiyoo ndox", cat_quinc_serrurerie: "🔒 Kadnaa & Caabi",
+                cat_quinc_visserie: "🔩 Pont & Kool", cat_quinc_outillage: "🔨 Jumtukaay",
+                cat_quinc_maconnerie: "🧱 Masoŋ",
                 newArticleTitle: "Bagas Bu Yees", newArticleSub: "Yokkal nataal ci sa bitik",
+                editArticleTitle: "Soppi Bagas Bi", editArticleSub: "Soppil tur wi, xeet wi walla njëg li",
+                saveChangesBtn: "✅ Denc ko",
                 takePhotoBtn: "📸 Jël Nataal", takePhotoDesc: "Bësal fii ngir jël nataal.",
                 prodNameLabel: "Turu bagas bi", prodCatLabel: "Xeetu bagas",
                 buyPriceLabel: "Njëgu jënd (F)", sellPriceLabel: "Njëgu jaay (F)",
@@ -932,9 +1202,19 @@
                 daySalesLabel: "Jaayante tey", dayProfitLabel: "Njariñu tey",
                 noSalesDayMsg: "Amul benn jaayante bes bii.", profitTag: "njariñ",
                 addCreditTitle: "Bind ci Kaye Bor", customerNameLabel: "Turu nit ki",
-                validateCreditBtn: "Dëggal Bor", typeCash: "Xaalis", typeCredit: "Leb"
+                validateCreditBtn: "Dëggal Bor", typeCash: "Xaalis", typeCredit: "Leb bu fay"
             },
             ff: {
+                chooseBusinessTitle: "Hol sifaa njeeygu ngol ngon-ɗaa e mum?",
+                chooseBusinessSub: "Pecce bitik maa maa peewnire e golle maa.",
+                biz_alimentation_title: "Ñaamri & Bitik",
+                biz_alimentation_desc: "Njardam, gawri, maafe, biskuwit, laabal...",
+                biz_mode_title: "Comci, Paɗe & Uurdi",
+                biz_mode_desc: "Paɗe rewɓe, uurdi, saakuuji, comci, cuɗi...",
+                biz_quincaillerie_title: "Kinkayeri & Kuutorɗe",
+                biz_quincaillerie_desc: "Kuuran, pentir, tiyoo ndiyam, kadana, pene...",
+                holdTip: "Ñoƴƴu 3s = Waylude",
+                holdingBadge: "✏️ Nanngu...",
                 caCycle: "Kaalis Fuu", benefit: "Ribu", total: "Siluu Fuu", viewDetail: "Ƴeew ko woni heen",
                 payCash: "Heɓta Kaalis", payCredit: "Nyamaande", addProduct: "Ɓeydu", addPhotoSub: "+ Foto",
                 emptyCart: "Siluu ina mehi", cycleLabel: "Sahaa", dayLabel: "Ñalnde",
@@ -942,7 +1222,17 @@
                 cat_biscuits: "🍪 Biskuwit", cat_hygiene: "🪥 Laabal", cat_menager: "🧹 Kuutorɗe galle",
                 cat_cereales: "🌾 Gawri e Maaro", cat_boulangerie: "🥖 Mburu", cat_telephonie: "📱 Telefoŋ",
                 cat_frais: "🧀 Kesum", cat_divers: "📦 Goɗɗi",
+                cat_mode_chaussures: "👠 Paɗe", cat_mode_parfums: "🌸 Uurdi / Parfeŋ",
+                cat_mode_sacs: "👜 Saakuuji", cat_mode_vetements: "👗 Comci",
+                cat_mode_bijoux: "💍 Cuɗi & Montor", cat_mode_cosmetiques: "💄 Nebam & Kosmetik",
+                cat_mode_accessoires: "🕶️ Lunet & Musoor",
+                cat_quinc_electricite: "🔌 Kuuran", cat_quinc_peinture: "🎨 Pentir",
+                cat_quinc_plomberie: "🚰 Tiyoo ndiyam", cat_quinc_serrurerie: "🔒 Kadana",
+                cat_quinc_visserie: "🔩 Pene & Kool", cat_quinc_outillage: "🔨 Kuutorɗe golle",
+                cat_quinc_maconnerie: "🧱 Mahngo",
                 newArticleTitle: "Huunde Hesre", newArticleSub: "Ɓeydu foto e bitik maa",
+                editArticleTitle: "Waylu Huunde", editArticleSub: "Waylu innde, sifaa walla coodgu",
+                saveChangesBtn: "✅ Danndu",
                 takePhotoBtn: "📸 Ɓam Foto", takePhotoDesc: "Mem ɗoo ngam ɓamde foto.",
                 prodNameLabel: "Innde huunde", prodCatLabel: "Sifaa huunde",
                 buyPriceLabel: "Coodgu soode (F)", sellPriceLabel: "Coodgu yeeyde (F)",
@@ -958,9 +1248,19 @@
                 daySalesLabel: "Yeeyde hande", dayProfitLabel: "Ribu hande",
                 noSalesDayMsg: "Hay huunde yeeyaaka ndee ñalnde.", profitTag: "ribu",
                 addCreditTitle: "Winndu e Deftere Nyamaande", customerNameLabel: "Innde soodoowo",
-                validateCreditBtn: "Tabintin", typeCash: "Kaalis", typeCredit: "Nyamaande"
+                validateCreditBtn: "Tabintin", typeCash: "Kaalis", typeCredit: "Nyamaande yoɓaama"
             },
             ar: {
+                chooseBusinessTitle: "ما نوع المتجر الذي تديره؟",
+                chooseBusinessSub: "سيتم تخصيص الأقسام والفئات تلقائياً حسب نشاطك.",
+                biz_alimentation_title: "بقالة ومواد غذائية",
+                biz_alimentation_desc: "مشروبات، حبوب، توابل، بسكويت، نظافة، منتجات طازجة...",
+                biz_mode_title: "أزياء وأحذية وعطور",
+                biz_mode_desc: "أحذية نسائية، عطور، حقائب، ملابس، إكسسوارات، تجميل...",
+                biz_quincaillerie_title: "خردوات ومواد البناء",
+                biz_quincaillerie_desc: "توصيلات كهربائية، طلاء، سباكة، أقفال، مسامير، أدوات...",
+                holdTip: "اضغط مطولاً 3 ثوانٍ = تعديل",
+                holdingBadge: "✏️ استمر بالضغط...",
                 caCycle: "مبيعات الدورة", benefit: "الربح المتوقع", total: "مجموع السلة", viewDetail: "عرض التفاصيل",
                 payCash: "قبض نقداً", payCredit: "بالدين", addProduct: "إضافة", addPhotoSub: "+ صورة",
                 emptyCart: "السلة فارغة", cycleLabel: "الدورة", dayLabel: "اليوم",
@@ -968,7 +1268,17 @@
                 cat_biscuits: "🍪 بسكويت وحلويات", cat_hygiene: "🪥 النظافة", cat_menager: "🧹 مواد التنظيف",
                 cat_cereales: "🌾 الحبوب", cat_boulangerie: "🥖 المخبوزات", cat_telephonie: "📱 الهواتف",
                 cat_frais: "🧀 منتجات طازجة", cat_divers: "📦 متنوعات",
+                cat_mode_chaussures: "👠 أحذية", cat_mode_parfums: "🌸 عطور ومعطرات",
+                cat_mode_sacs: "👜 حقائب", cat_mode_vetements: "👗 ملابس",
+                cat_mode_bijoux: "💍 مجوهرات وساعات", cat_mode_cosmetiques: "💄 مستحضرات تجميل",
+                cat_mode_accessoires: "🕶️ نظارات وأوشحة",
+                cat_quinc_electricite: "🔌 كهرباء وتوصيلات", cat_quinc_peinture: "🎨 طلاء وفرش",
+                cat_quinc_plomberie: "🚰 سباكة وأنابيب", cat_quinc_serrurerie: "🔒 أقفال ومفاتيح",
+                cat_quinc_visserie: "🔩 مسامير وبراغي", cat_quinc_outillage: "🔨 أدوات يدوية",
+                cat_quinc_maconnerie: "🧱 مواد البناء",
                 newArticleTitle: "منتج جديد", newArticleSub: "أضف صورة المنتج إلى متجرك",
+                editArticleTitle: "تعديل المنتج", editArticleSub: "تغيير الاسم أو القسم أو السعر أو الصورة",
+                saveChangesBtn: "✅ حفظ التعديلات",
                 takePhotoBtn: "📸 التقاط / اختيار صورة", takePhotoDesc: "اضغط هنا لفتح الكاميرا أو المعرض.",
                 prodNameLabel: "اسم المنتج", prodCatLabel: "القسم / الفئة",
                 buyPriceLabel: "سعر الشراء (F)", sellPriceLabel: "سعر البيع (F)",
@@ -984,7 +1294,7 @@
                 daySalesLabel: "مبيعات اليوم", dayProfitLabel: "ربح اليوم",
                 noSalesDayMsg: "لا توجد مبيعات مسجلة لهذا اليوم.", profitTag: "ربح",
                 addCreditTitle: "تسجيل في دفتر الديون", customerNameLabel: "اسم الزبون",
-                validateCreditBtn: "تأكيد الدين", typeCash: "نقداً", typeCredit: "بالدين"
+                validateCreditBtn: "تأكيد الدين", typeCash: "نقداً", typeCredit: "دين مسدد"
             }
         };
         let currentLang = localStorage.getItem('boutik_lang') || 'fr';
@@ -1001,6 +1311,7 @@
                 if (i18n[lang][key]) el.innerText = i18n[lang][key];
             });
             closeModal('langModal');
+            renderDynamicCategories();
             if (typeof renderProducts === 'function') renderProducts();
             if (typeof renderCart === 'function') renderCart(false);
             if (typeof renderCredits === 'function') renderCredits();
@@ -1009,7 +1320,118 @@
         }
 
         /* --------------------------------------------------
-         * ANALYTICS & TELEMETRY TRACKING (SCREEN TIME, FREQUENCY, OPTIONS)
+         * DYNAMIC BUSINESS CATEGORY RENDERER
+         * -------------------------------------------------- */
+        function getActiveBusinessProfile() {
+            const type = state.businessType && BUSINESS_PROFILES[state.businessType] ? state.businessType : 'alimentation';
+            return BUSINESS_PROFILES[type];
+        }
+
+        function getCategoryLabel(catObj) {
+            if (catObj.i18nKey && i18n[currentLang] && i18n[currentLang][catObj.i18nKey]) {
+                return i18n[currentLang][catObj.i18nKey];
+            }
+            return catObj.label;
+        }
+
+        function renderDynamicCategories() {
+            const profile = getActiveBusinessProfile();
+            const navContainer = document.getElementById('categoryNavContainer');
+            const selectEl = document.getElementById('prodCategory');
+            const nameInput = document.getElementById('prodName');
+
+            if (nameInput && profile.placeholder) {
+                nameInput.placeholder = profile.placeholder;
+            }
+
+            if (navContainer) {
+                const allLabel = i18n[currentLang]?.cat_all || '✨ Tout';
+                let navHtml = `<button onclick="filterCategory('all', this)" class="cat-btn ${state.currentCategory === 'all' ? 'active bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'} px-2.5 py-1 rounded-lg transition whitespace-nowrap">${allLabel}</button>`;
+
+                profile.categories.forEach(cat => {
+                    const isActive = state.currentCategory === cat.id;
+                    const label = getCategoryLabel(cat);
+                    navHtml += `<button onclick="filterCategory('${cat.id}', this)" class="cat-btn ${isActive ? 'active bg-amber-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'} px-2.5 py-1 rounded-lg transition whitespace-nowrap">${label}</button>`;
+                });
+                navContainer.innerHTML = navHtml;
+            }
+
+            if (selectEl) {
+                const currentVal = selectEl.value;
+                selectEl.innerHTML = profile.categories.map(cat => {
+                    const label = getCategoryLabel(cat);
+                    return `<option value="${cat.id}">${label}</option>`;
+                }).join('');
+                if (currentVal && profile.categories.some(c => c.id === currentVal)) {
+                    selectEl.value = currentVal;
+                }
+            }
+
+            const iconEl = document.getElementById('businessTypeIcon');
+            const labelEl = document.getElementById('businessTypeLabel');
+            const cycleBizEl = document.getElementById('cycleModalBusinessName');
+            if (iconEl) iconEl.innerText = profile.icon;
+            if (labelEl) labelEl.innerText = profile.shortName;
+            if (cycleBizEl) cycleBizEl.innerText = `${profile.icon} ${profile.fullName}`;
+
+            ['alimentation', 'mode', 'quincaillerie'].forEach(type => {
+                const card = document.getElementById(`bizCard_${type}`);
+                if (card) {
+                    if (type === profile.id) {
+                        card.classList.add('border-amber-400', 'bg-slate-800');
+                        card.classList.remove('border-slate-700');
+                    } else {
+                        card.classList.remove('border-amber-400', 'bg-slate-800');
+                        card.classList.add('border-slate-700');
+                    }
+                }
+            });
+        }
+
+        function selectBusinessType(type) {
+            if (!BUSINESS_PROFILES[type]) return;
+            const isFirstChoice = !state.businessType;
+            state.businessType = type;
+            state.currentCategory = 'all';
+            safeStorageSet('boutik_business_type', type);
+            trackUsage('Activité: ' + BUSINESS_PROFILES[type].fullName);
+
+            const existingProducts = localStorage.getItem('boutik_products');
+            const hasCustomProducts = localStorage.getItem('boutik_products_customized') === 'true';
+
+            if (!hasCustomProducts && !existingProducts) {
+                state.products = JSON.parse(JSON.stringify(BUSINESS_PROFILES[type].defaultProducts));
+                saveProductsSafely();
+            } else if (Array.isArray(state.products) && state.products.length > 0) {
+                const validCategoryIds = BUSINESS_PROFILES[type].categories.map(c => c.id);
+                let migrated = false;
+                state.products.forEach(p => {
+                    if (!validCategoryIds.includes(p.category)) {
+                        p.category = 'divers';
+                        migrated = true;
+                    }
+                });
+                if (migrated) {
+                    saveProductsSafely();
+                }
+            }
+
+            window.safeTrackEvent('choix_activite', {
+                activite: type,
+                nom_activite: BUSINESS_PROFILES[type].fullName
+            });
+            sounds.playPop();
+            closeModal('businessTypeModal');
+            renderDynamicCategories();
+            renderProducts();
+
+            if (isFirstChoice && !state.isConfigured) {
+                openModal('cycleModal');
+            }
+        }
+
+        /* --------------------------------------------------
+         * ANALYTICS & TELEMETRY TRACKING
          * -------------------------------------------------- */
         let analytics = safeJSONParse('boutik_analytics', {
             totalScreenSeconds: 0,
@@ -1031,9 +1453,13 @@
         function trackUsage(featureName) {
             analytics.featureClicks[featureName] = (analytics.featureClicks[featureName] || 0) + 1;
             saveAnalytics();
+            window.safeTrackEvent('action_boutique', {
+                action: featureName,
+                activite: (typeof state !== 'undefined' && state.businessType) ? state.businessType : 'non_defini',
+                langue: typeof currentLang !== 'undefined' ? currentLang : 'fr'
+            });
         }
 
-        // Track active screen time every second when app is visible
         setInterval(() => {
             if (!document.hidden) {
                 const today = getTodayISO();
@@ -1055,27 +1481,26 @@
         }
 
         /* --------------------------------------------------
-         * WHATSAPP EXPORT FUNCTIONALITY (WITH FULL TELEMETRY)
+         * WHATSAPP EXPORT FUNCTIONALITY
          * -------------------------------------------------- */
         async function exportToWhatsApp() {
             const today = getTodayISO();
+            const profile = getActiveBusinessProfile();
             const totalCA = state.transactions.reduce((acc, t) => acc + t.total, 0);
             const totalProfit = state.transactions.reduce((acc, t) => acc + t.profit, 0);
             const totalCreditAmount = state.credits.reduce((acc, c) => acc + c.amount, 0);
 
-            // Compute usage analytics
             const activeDaysCount = Object.keys(analytics.dailySessions).length || 1;
             const totalSessions = Object.values(analytics.dailySessions).reduce((a, b) => a + b, 0);
             const avgSessionsPerDay = (totalSessions / activeDaysCount).toFixed(1);
             const avgScreenPerDay = Math.round(analytics.totalScreenSeconds / activeDaysCount);
 
-            // Sort most used features
             const sortedFeatures = Object.entries(analytics.featureClicks)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 8);
 
-            // Construct readable report summary
             let summaryText = `📊 *BILAN & ANALYSE BOUTIK'GAME - ${today}*\n`;
+            summaryText += `🏪 *Activité:* ${profile.icon} ${profile.fullName}\n`;
             summaryText += `========================================\n\n`;
 
             summaryText += `📱 *ANALYSE D'UTILISATION & TEMPS D'ÉCRAN*\n`;
@@ -1093,39 +1518,24 @@
             } else {
                 summaryText += `• Aucune interaction enregistrée pour le moment\n`;
             }
-            summaryText += `\n📅 *FRÉQUENCE D'UTILISATION PAR JOUR*\n`;
-            Object.entries(analytics.dailySessions).slice(-14).forEach(([day, count]) => {
-                const daySec = analytics.dailyScreenSeconds[day] || 0;
-                summaryText += `• ${day} : ${count} session(s) — Écran: ${formatDuration(daySec)}\n`;
-            });
 
             summaryText += `\n----------------------------------------\n`;
-            summaryText += `💰 *Chiffre d'Affaires Cycle:* ${totalCA.toLocaleString()} FCFA\n`;
-            summaryText += `📈 *Bénéfice Net Estimé:* ${totalProfit.toLocaleString()} FCFA\n`;
-            summaryText += `🛒 *Nombre de Ventes:* ${state.transactions.length}\n`;
-            summaryText += `📕 *Dettes Clients (Carnet):* ${totalCreditAmount.toLocaleString()} FCFA (${state.credits.length} client(s))\n`;
+            summaryText += `💰 *Chiffre d'Affaires Encaissé:* ${totalCA.toLocaleString()} FCFA\n`;
+            summaryText += `📈 *Bénéfice Net Encaissé:* ${totalProfit.toLocaleString()} FCFA\n`;
+            summaryText += `🛒 *Ventes Encaissées:* ${state.transactions.length}\n`;
+            summaryText += `📕 *Crédits en Attente (Non comptabilisés):* ${totalCreditAmount.toLocaleString()} FCFA (${state.credits.length} client(s))\n`;
             summaryText += `----------------------------------------\n\n`;
-
-            if (state.credits.length > 0) {
-                summaryText += `📋 *DÉTAILS DES CRÉDITS EN COURS:*\n`;
-                state.credits.forEach(c => {
-                    summaryText += `• ${c.customer}: ${c.amount.toLocaleString()} FCFA (${c.date})\n`;
-                });
-                summaryText += `\n`;
-            }
 
             summaryText += `📦 *CATALOGUE DE PRODUITS (${state.products.length}):*\n`;
             state.products.forEach(p => {
-                summaryText += `• ${p.name} | Prix: ${p.sellPrice} FCFA\n`;
+                summaryText += `• ${p.name} [${p.category}] | Prix: ${p.sellPrice} FCFA\n`;
             });
             summaryText += `\nGénéré automatiquement via Boutik'Game 🚀`;
 
-            // Create downloadable Text/File Blob
             const filename = `Rapport_BoutikGame_${today}.txt`;
             const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
             const file = new File([blob], filename, { type: 'text/plain' });
 
-            // Try Native Mobile Web Share API (Direct WhatsApp File Sharing)
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
@@ -1134,12 +1544,9 @@
                         files: [file]
                     });
                     return;
-                } catch (err) {
-                    console.log('Partage natif annulé ou indisponible, passage au fallback.', err);
-                }
+                } catch (err) {}
             }
 
-            // Fallback: Trigger File Download + Direct WhatsApp Web/App Chat Link
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = filename;
@@ -1147,7 +1554,6 @@
             link.click();
             document.body.removeChild(link);
 
-            // Open WhatsApp with text summary
             const waUrl = `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
             window.open(waUrl, '_blank');
         }
@@ -1245,6 +1651,27 @@
                 } catch (e) {}
             }
 
+            playEditReady() {
+                try {
+                    if (!this.enabled) return;
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    [587.33, 880.00].forEach((freq, i) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                        gain.gain.setValueAtTime(0.25, now + i * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.22);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + i * 0.08);
+                        osc.stop(now + i * 0.08 + 0.24);
+                    });
+                } catch (e) {}
+            }
+
             playSlotMachineJackpot() {
                 try {
                     if (!this.enabled) return;
@@ -1290,24 +1717,6 @@
                         osc1.stop(t + 0.46);
                         osc2.stop(t + 0.46);
                     });
-
-                    for (let c = 0; c < 18; c++) {
-                        const t = now + 0.7 + c * 0.07;
-                        const coinOsc = this.ctx.createOscillator();
-                        const coinGain = this.ctx.createGain();
-                        coinOsc.type = 'sine';
-                        const baseFreq = 2200 + (c % 4) * 320;
-                        coinOsc.frequency.setValueAtTime(baseFreq, t);
-                        coinOsc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, t + 0.06);
-
-                        coinGain.gain.setValueAtTime(0.28, t);
-                        coinGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-
-                        coinOsc.connect(coinGain);
-                        coinGain.connect(this.ctx.destination);
-                        coinOsc.start(t);
-                        coinOsc.stop(t + 0.085);
-                    }
                 } catch (e) {}
             }
 
@@ -1366,6 +1775,27 @@
                 } catch (e) {}
             }
 
+            playCreditNote() {
+                try {
+                    if (!this.enabled) return;
+                    this.init();
+                    if (!this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    [440.00, 392.00].forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.22);
+                    });
+                } catch (e) {}
+            }
+
             playDeleteBuzz() {
                 try {
                     if (!this.enabled) return;
@@ -1386,15 +1816,11 @@
             }
 
             playDailyGoalFanfare() {
-                try {
-                    this.playSlotMachineJackpot();
-                } catch (e) {}
+                try { this.playSlotMachineJackpot(); } catch (e) {}
             }
 
             playLevelUpFanfare() {
-                try {
-                    this.playSlotMachineJackpot();
-                } catch (e) {}
+                try { this.playSlotMachineJackpot(); } catch (e) {}
             }
         }
 
@@ -1409,6 +1835,7 @@
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 registerDailyVisit();
+                if (typeof window.flushOfflineAnalyticsQueue === 'function') window.flushOfflineAnalyticsQueue();
                 checkRemoteUpdate();
                 if (sounds.enabled) sounds.startBackgroundMusic();
             } else {
@@ -1438,21 +1865,19 @@
         /* --------------------------------------------------
          * 3. INITIAL SEED DATA & STATE
          * -------------------------------------------------- */
-        const DEFAULT_PRODUCTS = [
-            { id: '1', name: 'Sucrerie 50cl', category: 'boissons', sellPrice: 400, buyPrice: 300, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&auto=format&fit=crop&q=85' },
-            { id: '2', name: 'Pain Baguette', category: 'boulangerie', sellPrice: 150, buyPrice: 100, image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=85' }
-        ];
-
         function loadInitialProducts() {
+            const savedBiz = localStorage.getItem('boutik_business_type') || 'alimentation';
+            const fallbackProducts = BUSINESS_PROFILES[savedBiz]?.defaultProducts || BUSINESS_PROFILES.alimentation.defaultProducts;
             const raw = localStorage.getItem('boutik_products');
             if (raw === null) {
-                return DEFAULT_PRODUCTS;
+                return fallbackProducts;
             }
-            const parsed = safeJSONParse('boutik_products', DEFAULT_PRODUCTS);
-            return Array.isArray(parsed) ? parsed : DEFAULT_PRODUCTS;
+            const parsed = safeJSONParse('boutik_products', fallbackProducts);
+            return Array.isArray(parsed) ? parsed : fallbackProducts;
         }
 
         let state = {
+            businessType: localStorage.getItem('boutik_business_type') || '',
             products: loadInitialProducts(),
             cart: [],
             credits: safeJSONParse('boutik_credits', []),
@@ -1558,27 +1983,18 @@
             const surplusEl = document.getElementById('dailyVictorySurplus');
             const streakEl = document.getElementById('dailyStreakText');
 
-            if (amountEl) {
-                amountEl.innerText = `+${todayProfit.toLocaleString()} FCFA`;
-            }
-
+            if (amountEl) amountEl.innerText = `+${todayProfit.toLocaleString()} FCFA`;
             if (surplusEl) {
                 const surplus = todayProfit - state.dailyProfitGoal;
-                if (surplus > 0) {
-                    surplusEl.innerText = `🚀 +${surplus.toLocaleString()} FCFA au-dessus de l'objectif !`;
-                } else {
-                    surplusEl.innerText = `🎯 100% de l'objectif journalier validé !`;
-                }
+                surplusEl.innerText = surplus > 0
+                    ? `🚀 +${surplus.toLocaleString()} FCFA au-dessus de l'objectif !`
+                    : `🎯 100% de l'objectif journalier validé !`;
             }
-
             if (streakEl) {
                 const s = state.dailyStreak;
                 streakEl.innerText = s > 1 ? `SÉRIE : ${s} JOURS RÉUSSIS 🔥` : `1ÈRE VICTOIRE DU JOUR 🔥`;
             }
-
-            setTimeout(() => {
-                openModal('dailyGoalModal');
-            }, 450);
+            setTimeout(() => openModal('dailyGoalModal'), 450);
         }
 
         function claimDailyVictory() {
@@ -1610,7 +2026,6 @@
 
                 let particles = [];
                 const colors = ['#F59E0B', '#FDE047', '#10B981', '#38BDF8', '#F43F5E', '#A855F7'];
-
                 const centers = [
                     { x: canvas.width * 0.25, y: canvas.height * 0.35 },
                     { x: canvas.width * 0.75, y: canvas.height * 0.35 },
@@ -1622,8 +2037,7 @@
                         const angle = (Math.PI * 2 * i) / 55;
                         const speed = Math.random() * 8 + 4;
                         particles.push({
-                            x: c.x,
-                            y: c.y,
+                            x: c.x, y: c.y,
                             vx: Math.cos(angle) * speed,
                             vy: Math.sin(angle) * speed,
                             size: Math.random() * 6 + 4,
@@ -1644,7 +2058,6 @@
                         p.vy += 0.18;
                         p.vx *= 0.98;
                         p.alpha -= 0.009;
-
                         ctx.save();
                         ctx.globalAlpha = Math.max(p.alpha, 0);
                         if (p.isCrown) {
@@ -1681,9 +2094,7 @@
                     });
                 }
             });
-            if (modified) {
-                saveTransactionsSafely();
-            }
+            if (modified) saveTransactionsSafely();
         }
 
         async function hydrateProductImagesFromVault() {
@@ -1697,13 +2108,10 @@
                         needsRender = true;
                     }
                 } else if (p && typeof p.image === 'string' && p.image.startsWith('data:image')) {
-                    // Sauvegarder une copie de secours dans IndexedDB hors-ligne
                     ImageVault.saveImage(p.id, p.image);
                 }
             }
-            if (needsRender) {
-                renderProducts();
-            }
+            if (needsRender) renderProducts();
         }
 
         function initApp() {
@@ -1711,6 +2119,7 @@
             registerDailyVisit();
             setLanguage(currentLang);
             updateAudioUI();
+            renderDynamicCategories();
             renderProducts();
             hydrateProductImagesFromVault();
             renderCart(false);
@@ -1718,15 +2127,15 @@
             renderHistory();
             updateKPIs(false);
 
-            if (!state.isConfigured) {
+            if (!state.businessType) {
+                openModal('businessTypeModal');
+            } else if (!state.isConfigured) {
                 openModal('cycleModal');
             }
 
             checkRemoteUpdate();
             setInterval(() => {
-                if (navigator.onLine) {
-                    checkRemoteUpdate();
-                }
+                if (navigator.onLine) checkRemoteUpdate();
             }, 60000);
         }
 
@@ -1748,7 +2157,7 @@
 
         function toggleFullScreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => console.log(err));
+                document.documentElement.requestFullscreen().catch(() => {});
             } else {
                 if (document.exitFullscreen) document.exitFullscreen();
             }
@@ -1776,6 +2185,73 @@
             renderProducts();
         }
 
+        /* --------------------------------------------------
+         * OPEN ADD / EDIT PRODUCT MODAL (LONG PRESS 3s)
+         * -------------------------------------------------- */
+        function openAddProductModal() {
+            document.getElementById('editProductId').value = '';
+            document.getElementById('formAddProduct').reset();
+            state.tempImageData = null;
+            document.getElementById('prodImagePreview').src = 'https://placehold.co/500x500/1e293b/f59e0b?text=Photo';
+
+            const titleEl = document.getElementById('productModalTitle');
+            const subEl = document.getElementById('productModalSub');
+            const iconEl = document.getElementById('productModalIcon');
+            const btnSubmit = document.getElementById('btnSubmitProduct');
+
+            if (titleEl) titleEl.innerText = i18n[currentLang]?.newArticleTitle || 'Nouvel Article';
+            if (subEl) subEl.innerText = i18n[currentLang]?.newArticleSub || 'Ajoutez une vignette photo à votre rayon';
+            if (iconEl) iconEl.className = 'fa-solid fa-camera-retro text-sm';
+            if (btnSubmit) btnSubmit.innerText = i18n[currentLang]?.addToShelfBtn || '✨ Ajouter au rayon';
+
+            renderDynamicCategories();
+            updateLiveMarginPreview();
+            openModal('addProductModal');
+        }
+
+        function openEditProductModal(product) {
+            if (!product) return;
+            trackUsage('Modification Article (3s)');
+            sounds.playEditReady();
+
+            renderDynamicCategories();
+
+            document.getElementById('editProductId').value = product.id;
+            document.getElementById('prodName').value = product.name;
+            document.getElementById('prodBuyPrice').value = product.buyPrice;
+            document.getElementById('prodSellPrice').value = product.sellPrice;
+
+            const selectEl = document.getElementById('prodCategory');
+            if (selectEl) {
+                selectEl.value = product.category;
+            }
+
+            state.tempImageData = product.image || null;
+            const imgUrl = (product.image && !product.image.startsWith('idb:'))
+                ? product.image
+                : 'https://placehold.co/500x500/1e293b/f59e0b?text=' + encodeURIComponent(product.name);
+            document.getElementById('prodImagePreview').src = imgUrl;
+
+            const titleEl = document.getElementById('productModalTitle');
+            const subEl = document.getElementById('productModalSub');
+            const iconEl = document.getElementById('productModalIcon');
+            const btnSubmit = document.getElementById('btnSubmitProduct');
+
+            if (titleEl) titleEl.innerText = i18n[currentLang]?.editArticleTitle || "Modifier l'Article";
+            if (subEl) subEl.innerText = i18n[currentLang]?.editArticleSub || "Changez le nom, le rayon, le prix ou la photo";
+            if (iconEl) iconEl.className = 'fa-solid fa-pen-to-square text-sm';
+            if (btnSubmit) btnSubmit.innerText = i18n[currentLang]?.saveChangesBtn || '✅ Enregistrer';
+
+            updateLiveMarginPreview();
+            openModal('addProductModal');
+        }
+
+        function closeProductModal() {
+            document.getElementById('editProductId').value = '';
+            state.tempImageData = null;
+            closeModal('addProductModal');
+        }
+
         function renderProducts() {
             const grid = document.getElementById('productGrid');
             if (!grid) return;
@@ -1785,7 +2261,7 @@
             const addCard = document.createElement('div');
             addCard.onclick = () => {
                 trackUsage('Ajout Article');
-                openModal('addProductModal');
+                openAddProductModal();
             };
             addCard.className = 'aspect-square bg-slate-800/60 hover:bg-slate-800 border-2 border-dashed border-amber-500/40 hover:border-amber-400 rounded-2xl flex flex-col items-center justify-center p-2 cursor-pointer text-center group transition active:scale-95';
             addCard.innerHTML = `
@@ -1810,33 +2286,103 @@
                     state.deleteMode ? 'border-red-500 animate-pulse' : count > 0 ? 'border-amber-400 bg-slate-800 ring-2 ring-amber-400/30' : 'border-slate-800 bg-slate-900/90 hover:border-slate-700'
                 }`;
 
-                card.onclick = (e) => {
-                    if (state.deleteMode) {
-                        deleteProduct(p.id);
-                    } else {
-                        addToCart(p, e);
-                    }
-                };
                 const imgUrl = (p.image && !p.image.startsWith('idb:'))
                     ? p.image
                     : 'https://placehold.co/400x400/1e293b/f59e0b?text=' + encodeURIComponent(p.name);
 
                 card.innerHTML = `
-                    <img src="${imgUrl}" onerror="this.src='https://placehold.co/400x400/1e293b/f59e0b?text=Article'" class="absolute inset-0 w-full h-full object-cover opacity-45 group-hover:opacity-60 transition">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+                    <img src="${imgUrl}" onerror="this.src='https://placehold.co/400x400/1e293b/f59e0b?text=Article'" class="absolute inset-0 w-full h-full object-cover opacity-45 group-hover:opacity-60 transition pointer-events-none">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none"></div>
 
-                    <!-- Top Bar: Badge quantity -->
-                    <div class="relative z-10 flex justify-between items-start w-full">
+                    <div class="relative z-10 flex justify-between items-start w-full pointer-events-none">
                         ${count > 0 ? `<span class="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[11px] shadow">${count}</span>` : '<div></div>'}
                         ${state.deleteMode ? `<span class="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center text-xs shadow"><i class="fa-solid fa-trash"></i></span>` : ''}
                     </div>
 
-                    <!-- Bottom Bar: Name & Price -->
-                    <div class="relative z-10 text-left min-w-0">
+                    <div class="hold-badge hidden relative z-10 mx-auto px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] shadow-lg pointer-events-none">
+                        ${i18n[currentLang]?.holdingBadge || '✏️ Maintenir...'}
+                    </div>
+
+                    <div class="relative z-10 text-left min-w-0 pointer-events-none">
                         <p class="text-xs font-bold text-white leading-tight truncate drop-shadow-sm">${p.name}</p>
                         <p class="text-xs font-black text-amber-400 mt-0.5 drop-shadow">${p.sellPrice.toLocaleString()} F</p>
                     </div>
+
+                    <div class="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-950/70 z-20 pointer-events-none">
+                        <div class="hold-bar h-full w-0 bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400"></div>
+                    </div>
                 `;
+
+                let holdTimer = null;
+                let visualDelayTimer = null;
+                let longPressTriggered = false;
+                let startX = 0;
+                let startY = 0;
+                const holdBar = card.querySelector('.hold-bar');
+                const holdBadge = card.querySelector('.hold-badge');
+
+                const clearHoldVisuals = () => {
+                    if (visualDelayTimer) {
+                        clearTimeout(visualDelayTimer);
+                        visualDelayTimer = null;
+                    }
+                    if (holdTimer) {
+                        clearTimeout(holdTimer);
+                        holdTimer = null;
+                    }
+                    card.classList.remove('animate-hold-pulse');
+                    if (holdBar) holdBar.classList.remove('hold-progress-active');
+                    if (holdBadge) holdBadge.classList.add('hidden');
+                };
+
+                card.addEventListener('pointerdown', (e) => {
+                    if (state.deleteMode) return;
+                    if (e.button !== undefined && e.button !== 0) return;
+
+                    longPressTriggered = false;
+                    startX = e.clientX;
+                    startY = e.clientY;
+
+                    visualDelayTimer = setTimeout(() => {
+                        card.classList.add('animate-hold-pulse');
+                        if (holdBar) {
+                            holdBar.classList.remove('hold-progress-active');
+                            void holdBar.offsetWidth;
+                            holdBar.classList.add('hold-progress-active');
+                        }
+                        if (holdBadge) holdBadge.classList.remove('hidden');
+                    }, 350);
+
+                    holdTimer = setTimeout(() => {
+                        longPressTriggered = true;
+                        clearHoldVisuals();
+                        openEditProductModal(p);
+                    }, 3000);
+                });
+
+                card.addEventListener('pointermove', (e) => {
+                    if (!holdTimer) return;
+                    if (Math.abs(e.clientX - startX) > 12 || Math.abs(e.clientY - startY) > 12) {
+                        clearHoldVisuals();
+                    }
+                });
+
+                card.addEventListener('pointerup', (e) => {
+                    if (state.deleteMode) {
+                        deleteProduct(p.id);
+                        return;
+                    }
+                    const wasHolding = holdTimer !== null;
+                    clearHoldVisuals();
+                    if (!longPressTriggered && wasHolding) {
+                        addToCart(p, e);
+                    }
+                });
+
+                card.addEventListener('pointercancel', clearHoldVisuals);
+                card.addEventListener('pointerleave', clearHoldVisuals);
+                card.addEventListener('contextmenu', (e) => e.preventDefault());
+
                 grid.appendChild(card);
             });
         }
@@ -1849,6 +2395,13 @@
                 const y = event.clientY || (event.touches && event.touches[0]?.clientY) || window.innerHeight / 2;
                 spawnGoldCoins(x, y, p.sellPrice);
             }
+            window.safeTrackEvent('ajout_panier', {
+                article: p.name,
+                categorie: p.category,
+                prix_vente: p.sellPrice,
+                marge: p.sellPrice - p.buyPrice,
+                activite: state.businessType || 'non_defini'
+            });
             const item = state.cart.find(c => c.id === p.id);
             if (item) {
                 item.qty++;
@@ -1864,51 +2417,41 @@
             state.products = state.products.filter(p => p.id !== id);
             state.cart = state.cart.filter(c => c.id !== id);
             ImageVault.deleteImage(id);
+            safeStorageSet('boutik_products_customized', 'true');
             saveProductsSafely();
             renderProducts();
             renderCart();
         }
 
-        function processFinalPayment(type, customerName = null) {
-            const total = state.cart.reduce((acc, c) => acc + (c.sellPrice * c.qty), 0);
-            const profit = state.cart.reduce((acc, c) => acc + ((c.sellPrice - c.buyPrice) * c.qty), 0);
+        /* --------------------------------------------------
+         * COMPTABILISATION DES VENTES ET CRÉDITS
+         * (Les crédits sont comptabilisés uniquement au paiement)
+         * -------------------------------------------------- */
+        function recordSettledTransaction(items, total, profit, type, customerName) {
             const today = getTodayISO();
-
-            // Alléger l'historique : stocker uniquement id, name, sellPrice, buyPrice, qty (sans image base64)
-            const lightItems = state.cart.map(item => ({
-                id: item.id,
-                name: item.name,
-                sellPrice: item.sellPrice,
-                buyPrice: item.buyPrice,
-                qty: item.qty
-            }));
-
             const tx = {
                 id: Date.now().toString(),
                 date: today,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                items: lightItems,
+                items: items,
                 total: total,
                 profit: profit,
                 type: type,
-                customer: customerName || (type === 'credit' ? 'Client Anonyme' : 'Client Comptant')
+                customer: customerName || 'Client Comptant'
             };
 
             state.transactions.unshift(tx);
             saveTransactionsSafely();
 
-            if (type === 'credit') {
-                state.credits.unshift({
-                    id: tx.id,
-                    customer: customerName || 'Client Anonyme',
-                    amount: total,
-                    date: today,
-                    items: lightItems
-                });
-                safeStorageSet('boutik_credits', JSON.stringify(state.credits));
-            }
+            window.safeTrackEvent('vente_encaissee', {
+                montant_total: total,
+                benefice: profit,
+                nb_articles: items.reduce((acc, i) => acc + (i.qty || 1), 0),
+                mode_paiement: type,
+                activite: state.businessType || 'non_defini',
+                niveau_boutique: state.shopLevel
+            });
 
-            // Daily Profit Goal logic & streak
             const todayProfit = state.transactions
                 .filter(t => t.date === today)
                 .reduce((acc, t) => acc + t.profit, 0);
@@ -1922,7 +2465,6 @@
                 triggeredDaily = true;
             }
 
-            // Cycle Goal Level Up logic
             const totalCycleProfit = state.transactions.reduce((acc, t) => acc + t.profit, 0);
             let triggeredLevelUp = false;
 
@@ -1934,15 +2476,9 @@
                 triggeredLevelUp = true;
             }
 
-            // 6. Prioriser la validation et le vidage du panier + mise à jour UI AVANT les effets
-            state.cart = [];
-            renderCart();
-            renderProducts();
             updateKPIs();
-            renderCredits();
             renderHistory();
 
-            // Effets sonores et visuels isolés contre tout blocage iOS
             try {
                 sounds.playCashChime();
                 triggerConfetti();
@@ -1960,6 +2496,57 @@
                 } catch (e) {}
                 openModal('goalReachedModal');
             }
+        }
+
+        function processFinalPayment(type, customerName = null) {
+            const total = state.cart.reduce((acc, c) => acc + (c.sellPrice * c.qty), 0);
+            const profit = state.cart.reduce((acc, c) => acc + ((c.sellPrice - c.buyPrice) * c.qty), 0);
+            const today = getTodayISO();
+
+            const lightItems = state.cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                sellPrice: item.sellPrice,
+                buyPrice: item.buyPrice,
+                qty: item.qty
+            }));
+
+            if (type === 'credit') {
+                // Inscrire uniquement au Carnet de Crédit sans comptabiliser en caisse tant que non payé
+                state.credits.unshift({
+                    id: Date.now().toString(),
+                    customer: customerName || 'Client Anonyme',
+                    amount: total,
+                    profit: profit,
+                    date: today,
+                    items: lightItems
+                });
+                safeStorageSet('boutik_credits', JSON.stringify(state.credits));
+
+                window.safeTrackEvent('vente_credit_notee', {
+                    montant_total: total,
+                    benefice_potentiel: profit,
+                    nb_articles: lightItems.reduce((acc, i) => acc + (i.qty || 1), 0),
+                    activite: state.businessType || 'non_defini'
+                });
+
+                state.cart = [];
+                renderCart();
+                renderProducts();
+                renderCredits();
+
+                try {
+                    sounds.playCreditNote();
+                    spawnGoldCoins(window.innerWidth / 2, window.innerHeight - 100, '📕 Crédit noté');
+                } catch (e) {}
+                return;
+            }
+
+            // Vente au comptant : encaissement et comptabilisation immédiate
+            state.cart = [];
+            renderCart();
+            renderProducts();
+            recordSettledTransaction(lightItems, total, profit, 'cash', customerName || 'Client Comptant');
         }
 
         function processCheckout(type, customerName) {
@@ -2066,7 +2653,6 @@
             state.displayedCA = totalCA;
             state.displayedProfit = totalProfit;
 
-            // Level & Rank Badges
             const lvlBadge = document.getElementById('shopLevelBadge');
             if (lvlBadge) lvlBadge.innerText = `Niv. ${state.shopLevel}`;
 
@@ -2077,8 +2663,6 @@
             const modalLvlBadge = document.getElementById('modalNewLevelBadge');
             if (modalLvlBadge) modalLvlBadge.innerText = `NIV. ${state.shopLevel}`;
 
-            // Progress bar
-            // Progress bar (Objectif du Jour uniquement)
             const today = getTodayISO();
             const todayProfit = state.transactions.filter(t => t.date === today).reduce((acc, t) => acc + t.profit, 0);
             const dailyPercent = state.dailyProfitGoal > 0 ? Math.min(100, Math.round((todayProfit / state.dailyProfitGoal) * 100)) : 0;
@@ -2124,10 +2708,34 @@
         }
 
         function payCredit(id) {
-            sounds.playCashChime();
+            const creditEntry = state.credits.find(c => c.id === id);
+            if (!creditEntry) return;
+
+            trackUsage('Remboursement Crédit');
+
+            // Calculer le bénéfice (compatibilité avec d'anciens crédits sans champ profit)
+            const creditProfit = typeof creditEntry.profit === 'number'
+                ? creditEntry.profit
+                : (creditEntry.items || []).reduce((acc, item) => acc + (((item.sellPrice || 0) - (item.buyPrice || 0)) * (item.qty || 1)), 0);
+
+            // Retirer la dette du carnet de crédit
             state.credits = state.credits.filter(c => c.id !== id);
             safeStorageSet('boutik_credits', JSON.stringify(state.credits));
             renderCredits();
+
+            // Fermer le carnet si plus aucune dette en cours pour bien voir l'encaissement
+            if (state.credits.length === 0) {
+                closeModal('creditModal');
+            }
+
+            // Comptabiliser officiellement la vente et le bénéfice au moment du paiement
+            recordSettledTransaction(
+                creditEntry.items || [],
+                creditEntry.amount,
+                creditProfit,
+                'credit',
+                creditEntry.customer
+            );
         }
 
         function processProductImage(event) {
@@ -2170,31 +2778,57 @@
 
         function handleSaveProduct(e) {
             e.preventDefault();
+            const editId = document.getElementById('editProductId').value;
             const name = document.getElementById('prodName').value.trim();
             const category = document.getElementById('prodCategory').value;
             const buyPrice = parseFloat(document.getElementById('prodBuyPrice').value) || 0;
             const sellPrice = parseFloat(document.getElementById('prodSellPrice').value) || 0;
 
-            const newProd = {
-                id: Date.now().toString(),
-                name,
-                category,
-                buyPrice,
-                sellPrice,
-                image: state.tempImageData || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=85'
-            };
-
-            if (state.tempImageData) {
-                ImageVault.saveImage(newProd.id, state.tempImageData);
+            if (editId) {
+                const index = state.products.findIndex(p => p.id === editId);
+                if (index !== -1) {
+                    const existing = state.products[index];
+                    const updatedImage = state.tempImageData || existing.image;
+                    state.products[index] = {
+                        ...existing,
+                        name,
+                        category,
+                        buyPrice,
+                        sellPrice,
+                        image: updatedImage
+                    };
+                    if (state.tempImageData && state.tempImageData.startsWith('data:image')) {
+                        ImageVault.saveImage(editId, state.tempImageData);
+                    }
+                    const cartItem = state.cart.find(c => c.id === editId);
+                    if (cartItem) {
+                        cartItem.name = name;
+                        cartItem.category = category;
+                        cartItem.buyPrice = buyPrice;
+                        cartItem.sellPrice = sellPrice;
+                    }
+                }
+            } else {
+                const newProd = {
+                    id: Date.now().toString(),
+                    name,
+                    category,
+                    buyPrice,
+                    sellPrice,
+                    image: state.tempImageData || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&auto=format&fit=crop&q=85'
+                };
+                if (state.tempImageData) {
+                    ImageVault.saveImage(newProd.id, state.tempImageData);
+                }
+                state.products.unshift(newProd);
             }
 
-            state.products.unshift(newProd);
+            sounds.playPop();
+            safeStorageSet('boutik_products_customized', 'true');
             saveProductsSafely();
-            state.tempImageData = null;
-            document.getElementById('formAddProduct').reset();
-            document.getElementById('prodImagePreview').src = 'https://placehold.co/500x500/1e293b/f59e0b?text=Photo';
-            closeModal('addProductModal');
+            closeProductModal();
             renderProducts();
+            renderCart(false);
         }
 
         function selectCycleDuration(days) {
@@ -2303,7 +2937,7 @@
                     <div>
                         <span class="font-bold text-white">${t.timestamp}</span>
                         <span class="text-[10px] text-slate-400 ml-2">(${t.items.length} art.)</span>
-                        <p class="text-[10px] text-slate-400 mt-0.5">${t.type === 'cash' ? (i18n[currentLang]?.typeCash || 'Comptant') : (i18n[currentLang]?.typeCredit || 'Crédit')} - ${t.customer}</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">${t.type === 'cash' ? (i18n[currentLang]?.typeCash || 'Comptant') : (i18n[currentLang]?.typeCredit || 'Crédit réglé')} - ${t.customer}</p>
                     </div>
                     <div class="text-right">
                         <span class="font-black text-amber-400 block">${t.total.toLocaleString()} F</span>
@@ -2313,9 +2947,6 @@
             `).join('');
         }
 
-        /* --------------------------------------------------
-         * 5. APPLICATION BOOTSTRAP ON LOAD
-         * -------------------------------------------------- */
         window.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
